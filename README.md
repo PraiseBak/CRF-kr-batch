@@ -25,7 +25,8 @@ current train_file must have form like ( will modify soon ):
 설명하기	설명/NNG+하/XSV+기/ETN   
 어렵다.	어렵/VA+다/EF+./SF   
    
-or   
+or     
+    
 한  MM   
 번  NNB   
 쓰  VV   
