@@ -5,6 +5,7 @@ from collections import Counter
 import sys
 import numpy as np
 import re
+import libKoreanString as lib_kr
 STARTING_LABEL = '*'		# Label of t=-1
 STARTING_LABEL_INDEX = 0
 
@@ -12,6 +13,16 @@ STARTING_LABEL_INDEX = 0
 # 기존 코드는 bag of words를 사용치 않으므로 키값을 일일이 구분하도록 합니다.
 def return_rowNcol(element):
 	return re.findall(r'-?\d+',element)
+
+
+def is_meta_syllable(value):
+	if lib_kr.isNumberSyllable(value):
+		return '1'
+	if lib_kr.isAlphabetChr(value):
+		return 'A'
+	if lib_kr.isHanjaSyllable(value):
+		return '家'
+	return value
 
 
 def feature_setting(_, X, t):
@@ -52,8 +63,12 @@ def feature_setting(_, X, t):
 				break
 			
 			value = X[t+int(row)][int(col)]
+			if value != '\n':
+				value = is_meta_syllable(value)	
+
 			feature += value + '/'
 		if len(value) != 0:
+
 			features.append(feature.rstrip('/'))
 	return features
 
@@ -103,8 +118,6 @@ class FeatureSet():
 				# Gets a label id
 				try:
 					y = self.label_dic[Y[t]]
-
-
 				except KeyError:
 					y = len(self.label_dic)
 					self.label_dic[Y[t]] = y

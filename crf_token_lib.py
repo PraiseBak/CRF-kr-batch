@@ -37,7 +37,6 @@ class kr_tokenizer():
 
 		for word in word_tok:
 			result_word.append(word)
-
 		return result_word
 	
 	def return_emjeol_n_morph_from_word_file(self,filename):
@@ -59,10 +58,24 @@ class kr_tokenizer():
 		
 		return emjeol_list
 
-
 		
 
-
+def test(prediction_filename,anwser_filename):
+	with open(anwser_filename,'r') as f:
+		anwser_list = f.readlines()
+		re_anwser = list() 
+		for line in anwser_list:
+			if line != '\n':
+				re_anwser.append(line)
+	
+	with open(prediction_filename,'r') as f2:
+		pred_list = f2.readlines()
+		re_pred_list = list()
+		for line in pred_list:
+			if line != '\n':
+				re_pred_list.append(line)
+	from nltk.metrics import accuracy
+	print('result:',accuracy(re_anwser,re_pred_list))
 
 if __name__ == "__main__":
 	tok = kr_tokenizer()

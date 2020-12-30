@@ -196,7 +196,6 @@ def step2_make_eumjeol_file(temp_list,input_filename):
 	global eumjeol_dict
 	outputfilename = input_filename.split('.')[0] + "_eumjeol.gld"
 	output_f = open(outputfilename,'w')
-	
 	for line in temp_list:
 		if line[0] == '\n':
 			output_f.write("\n")
@@ -208,8 +207,10 @@ def step2_make_eumjeol_file(temp_list,input_filename):
 		eumjeolL = list()
 		# mapping: 세종 태그셋을 단축셋으로 매핑한다.
 		if len(result)>4:
+			
 			if result[0] == '1' and mapping_table[result[3]] == 'NN' : 
-				output_f.write ("%s\t%s\n" % ( result[1], 'NS'))
+
+				output_f.write ("%d\t%s\t%s\n" % (line_num, result[1], 'NS'))
 			elif result[0] == '1' and mapping_table[result[3]] == 'MA' : 
 				output_f.write ("%s\t%s\n" % ( result[1], 'MS'))
 			else:
@@ -241,12 +242,13 @@ def step2_make_eumjeol_file(temp_list,input_filename):
 
 
 
-
 def start(filename):
 	input_filename = filename
 	temp_list = step1_make_temp_file(input_filename)
-	eumjeol_filename = step2_make_eumjeol_file(temp_list,input_filename)
 
+
+	eumjeol_filename = step2_make_eumjeol_file(temp_list,input_filename)
+	
 	outputfilename = input_filename + "_eumjeol.dict"	
 	output_f = open(outputfilename, "w")
 
@@ -258,3 +260,8 @@ def start(filename):
 		output_f.write("\n")
 	output_f.close()
 	return eumjeol_filename
+
+if __name__ == "__main__":
+	start("10000test.dat")
+
+

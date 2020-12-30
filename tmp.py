@@ -25,16 +25,21 @@ def eumjeol_to_sentense():
 		sentenses = list()
 		for line in data:
 			if line == "\n":
+				print('L',lines.rstrip(' '))
+				input
 				sentenses.append(lines.rstrip(' '))
 				lines= ""
 				continue
 			else:
+				print('R',(line + ' ').replace('\n',''))
+				input()
 				lines += (line + ' ').replace('\n','')
 	output = "10000test.sentense"
 
 	
 	with open(output,'w') as f2:
 		for sentense in sentenses:
+			print(sentense)
 			f2.write(sentense+'\n')
 
 if __name__ == "__main__":
