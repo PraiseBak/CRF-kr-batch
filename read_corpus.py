@@ -38,7 +38,7 @@ def read_conll_corpus(filename):
 	Read a corpus file with a format used in CoNLL.
 	"""
 	data = list()
-	data_string_list = list(open(filename,'r',encoding="UTF-8"))
+	data_string_list = list(open(filename,'r',encoding="utf-8"))
 	element_size = 0
 	X = list()
 	Y = list()

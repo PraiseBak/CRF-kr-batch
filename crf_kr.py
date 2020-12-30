@@ -14,18 +14,25 @@ if __name__ == '__main__':
 	crf = LinearChainCRF()
 	if args.mode == 'train':
 		if args.batch == 'True':
-			print('current not possible')
+			print('batch mode implement is in progress..')
 			pass
 		else:
 			crf.train(args.data,args.modelfile,args.batch)
+	
 	if args.mode == 'test':
-		
 		if args.batch == 'True':
-			print('current not possible')
+			print('batch mode implement is in progress..')
 			pass
 		else:
 			crf.test(args.data,args.modelfile,args.batch)
+		
 
 
+	if args.mode == 'inference':
+		if args.batch == 'True':
+			print('batch mode implement is in progress..')
+			pass
+		else:
+			crf.only_inference(args.data,args.modelfile,args.batch)
+			
 
-	

@@ -2,7 +2,7 @@
 
 import make_eumjeol_corpus as make_eumjeol
 from nltk.tokenize import word_tokenize
-
+from crf_make_eumjeol import start
 
 
 
@@ -29,7 +29,8 @@ class kr_tokenizer():
 	
 	
 	'''
-
+	def __init__(self):
+		pass
 
 	def return_word_tok_from_raw(self,raw_data = ""):
 		word_tok = word_tokenize(raw_data,'korean')
@@ -39,6 +40,8 @@ class kr_tokenizer():
 
 		return result_word
 	
+	def return_emjeol_n_morph_from_word_file(self,filename):
+		return start(filename)
 
 
 	def return_emjeol_from_raw(self,raw_data):

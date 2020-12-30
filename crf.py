@@ -26,8 +26,10 @@ import time
 import json
 import datetime
 import sys
-import crf_token_lib as tok_lib
+import crf_token_lib
 from collections import Counter
+
+
 
 SCALING_THRESHOLD = 1e250
 
@@ -287,6 +289,8 @@ class LinearChainCRF():
 							  args=(self.training_data, self.feature_set, training_feature_data,
 									self.feature_set.get_empirical_counts(),
 									self.label_dic, self.squared_sigma),
+							  maxiter=100,
+							  
 							  callback=_callback)
 		print('   ========================')
 		print('   (iter: iteration, sit: sub iteration)')
@@ -299,6 +303,8 @@ class LinearChainCRF():
 				print('* Reason: %s' % (information['task']))
 		print('* Likelihood: %s' % str(log_likelihood))
 
+		
+
 	def train(self, corpus_filename, model_filename,batch):
 		"""
 		Estimates parameters using conjugate gradient methods.(L-BFGS-B used)
@@ -308,9 +314,27 @@ class LinearChainCRF():
 
 		# Read the training corpus
 		print("* Reading training data ...\n ")
+		tok_lib = crf_token_lib.kr_tokenizer()
+
+		with open(corpus_filename) as f:
+			pred_line = f.readline()
+			is_word = True
+			if len(pred_line.split('\t')) == 1:
+				is_word = False
+			elif pred_line.split('\t')[1].find('/') == -1:
+				is_word = False
 		
-		self.training_data = tok_lib.return_corpus_data(corpus_filename)
-		print('로드는 끝')
+		if is_word:
+			result_filename = tok_lib.return_emjeol_n_morph_from_word_file(corpus_filename)
+			self.training_data = self._read_corpus(result_filename)
+		else:
+			self.training_data = self._read_corpus(corpus_filename)
+			
+		for i in self.training_data:
+			print(i)
+			input()
+
+		print('Read training data complete')
 
 		# Generate feature set from the corpus
 
@@ -333,19 +357,66 @@ class LinearChainCRF():
 		print('*총 소요 시간 Elapsed time: %f' % elapsed_time)
 		print('* [%s] Training done' % datetime.datetime.now())
 
-	def test(self, test_corpus_filename,model,batch):
+
+	def sentense_convert(self, filename):
+		import crf_token_lib
+		tok = crf_token_lib.kr_tokenizer()
+		
+		with open(filename,'r',encoding='utf-8') as f:
+			sentenses = f.readlines()
+			emjeol_list = list()
+			for sentense in sentenses:
+				emjeol_list.append(tok.return_emjeol_from_raw(sentense))
+		
+		return emjeol_list
+
+
+
+	def only_inference(self, test_corpus_filename,model,batch): 
+		
 		self.load(model)
 		if self.params is None:
 			raise BaseException("You should load a model first!")
 		start_time = time.time()
+		emjeol_list = list()
+		emjeol_list = self.sentense_convert(test_corpus_filename)
+		print("코퍼스  읽는데 걸린 시간 =",time.time() - start_time)
+		Y_list = list()
+		for X in emjeol_list:
+			Yprime = self.inference(X)
+			Y_list.append(Yprime)
+		self.write_result(emjeol_list,Y_list,test_corpus_filename)
 		
-		test_data = tok_lib.return_corpus_data(test_corpus_filename)
+
+	def write_result(self,emjeol_list,Y_list,filename):
+		result_list = list()
+		emjeol_idx = 0	
+		with open(filename.split('.')[0]+'.emjeol','w') as f:
+			for i in range(len(Y_list)):
+				for j in range(len(Y_list[i])):
+					if str(emjeol_list[i][j]) != '\n':
+						result = str(emjeol_list[i][j]) + '\t' + (Y_list[i][j])
+						f.write(result+'\n')
+				f.write('\n')
+
+
+
+	'''
+	보류
+	def test(self, test_corpus_filename,model,batch):
+		print('test는 음절 음절/형태소 형태의 코퍼스데이터에서만 동작합니다')
+		
+		self.load(model)
+		if self.params is None:
+			raise BaseException("You should load a model first!")
+		start_time = time.time()
+		test_data = self._read_corpus(test_corpus_filename)
 		print("코퍼스  읽는데 걸린 시간 =",time.time() - start_time)
 		total_count = 0
 		correct_count = 0
 		start2_time = time.time()
+		test_data = list()
 		for X, Y in test_data:
-			print(X)
 			Yprime = self.inference(X)
 			for t in range(len(Y)):
 				total_count += 1
@@ -355,6 +426,9 @@ class LinearChainCRF():
 		print('Correct: %d' % correct_count)
 		print('Total: %d' % total_count)
 		print('Performance: %f' % (correct_count/total_count))
+	'''
+
+
 
 	def print_test_result(self, test_corpus_filename):
 		test_data = self._read_corpus(test_corpus_filename)

@@ -9,3 +9,14 @@ _eumjeol_s1.txt
 _eumjeol.gld
 tmp.data
 test_file.data
+temp.txt!_eumjeol.tmp
+temp.txt
+temp.txt!
+tmp.gld
+test_file.data
+40000train.dat_eumjeol.tmp
+*.tmp
+*.gld
+*.txt
+*.dat
+*.data
