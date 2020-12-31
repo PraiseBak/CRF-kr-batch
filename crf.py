@@ -355,6 +355,17 @@ class LinearChainCRF():
 		print('*총 소요 시간 Elapsed time: %f' % elapsed_time)
 		print('* [%s] Training done' % datetime.datetime.now())
 
+	def sentense_convert_test(self, filename):
+		from nltk.tokenize import syllable_tokenize
+
+		with open(filename,'r',encoding='utf-8') as f:
+			sentenses = f.readlines()
+			emjeol_list = list()
+			for sentense in sentenses:
+				emjeol_list.append(syllable_tokenize(sentense,"korean"))
+		return emjeol_list
+
+
 
 	def sentense_convert(self, filename):
 		from nltk.tokenize import syllable_tokenize
@@ -374,6 +385,25 @@ class LinearChainCRF():
 					f.write(line+'\n')
 		print('result prediction file:',output_file)
 		
+	def only_inference_test(self, test_corpus_filename,model,batch):
+		self.load(model)
+		if self.params is None:
+			raise BaseException("You should load a model first!")
+		start_time = time.time()
+		emjeol_list = list()
+		emjeol_list,marked_list = self.sentense_convert_test(test_corpus_filename)
+		print("코퍼스  읽는데 걸린 시간 =",time.time() - start_time)
+		Y_list = list()
+
+		for X in emjeol_list:
+			Yprime = self.inference(X)
+			for i in range(len(Yprime)):
+				Y_list.append(X[i] + '\t' +Yprime[i])
+		
+
+		self.write_result(Y_list,model)
+
+
 
 	def only_inference(self, test_corpus_filename,model,batch):
 		self.load(model)

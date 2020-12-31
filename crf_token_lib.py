@@ -66,6 +66,8 @@ def test(prediction_filename,anwser_filename):
 	from nltk.metrics import accuracy
 	print('result:',accuracy(re_anwser,re_pred_list))
 
+
+
 if __name__ == "__main__":
 	tok = kr_tokenizer()
 	tok.test_code()

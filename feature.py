@@ -40,6 +40,66 @@ def is_meta_syllable(value):
 	return value
 
 
+
+
+
+
+
+def feature_setting_test(_, X, t):
+	"""
+	Returns a list of feature strings.
+	(Default feature function)
+	:param X: An observation vector
+	:param t: time
+	:return: A list of feature strings
+	"""
+	length = len(X)
+	f = open('template.txt','r',-1,'utf-8')
+	f.readline()
+	line = f.readlines()
+	features = list()
+	feature = ""
+	a = ""
+	for i in range(len(line)):
+		'한줄씩 템플릿에서 불러와서 feature 생성'
+		tmp_line = line[i]
+		if len(tmp_line) == 1:
+			continue
+		if tmp_line.find(':') == -1:
+			continue
+		key = tmp_line.split(':')[0]
+		element_arr = tmp_line.split(':')[1].split('/')
+		feature = tmp_line.rstrip('\n') + '='
+		value = ""
+		for j in range(len(element_arr)):
+			
+			element = element_arr[j].rstrip('\n')
+
+
+			row, col = return_rowNcol(element)
+			row = int(row)
+			col = int(col)
+			if row > length-t-1 and row >= 0:
+				break
+			elif row + t < 0 and row < 0:
+				break
+			
+			value = X[t+int(row)][int(col)]
+			if value != '\n':
+				value = is_meta_syllable(value)	
+
+			feature += value + '/'
+		if len(value) != 0:
+
+			features.append(feature.rstrip('/'))
+	return features
+
+
+
+
+
+
+
 def feature_setting(_, X, t):
 	"""
 	Returns a list of feature strings.
