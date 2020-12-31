@@ -28,7 +28,7 @@ import datetime
 import sys
 import crf_token_lib
 from collections import Counter
-
+from nltk.tokenize import syllable_tokenize
 
 
 SCALING_THRESHOLD = 1e250
@@ -368,7 +368,6 @@ class LinearChainCRF():
 
 
 	def sentense_convert(self, filename):
-		from nltk.tokenize import syllable_tokenize
 
 		with open(filename,'r',encoding='utf-8') as f:
 			sentenses = f.readlines()
@@ -377,31 +376,49 @@ class LinearChainCRF():
 				emjeol_list.append(syllable_tokenize(sentense,"korean"))
 		return emjeol_list
 	
+	def check_filename(self,filename):
+		import os
+		if not os.path.exists(filename):
+			return filename
+		else:
+			count = 0
+			origin_filename = filename
+			while True:
+				
+				filename = origin_filename + str(count)
+				if not os.path.exists(filename):
+					return filename
+				count += 1
+
+
 	def write_result(self,Y_list,filename):
+
 		output_file = filename.split('.')[0]+'.result'
+		output_file = self.check_filename(filename.split('.')[0]+'.result')
 		with open(output_file,'w') as f:
 			for line in Y_list:
 				if line != '\n':
 					f.write(line+'\n')
 		print('result prediction file:',output_file)
-		
-	def only_inference_test(self, test_corpus_filename,model,batch):
+	
+	#CRF.inference_sentense("문장입니다.",model_filename,False)
+	def inference_sentense(self, sentense,model,batch):
 		self.load(model)
 		if self.params is None:
 			raise BaseException("You should load a model first!")
 		start_time = time.time()
 		emjeol_list = list()
-		emjeol_list,marked_list = self.sentense_convert_test(test_corpus_filename)
+		emjeol_list = syllable_tokenize(sentense,"korean") 
 		print("코퍼스  읽는데 걸린 시간 =",time.time() - start_time)
 		Y_list = list()
 
 		for X in emjeol_list:
 			Yprime = self.inference(X)
 			for i in range(len(Yprime)):
-				Y_list.append(X[i] + '\t' +Yprime[i])
-		
+				Y_list.append((X[i],Yprime[i]))
+				#Y_list.append(X[i] + '\t' +Yprime[i])
 
-		self.write_result(Y_list,model)
+		#self.write_result(Y_list,model)
 
 
 
@@ -419,10 +436,11 @@ class LinearChainCRF():
 			Yprime = self.inference(X)
 			for i in range(len(Yprime)):
 				Y_list.append(X[i] + '\t' +Yprime[i])
-		
 
 		self.write_result(Y_list,model)
-
+		
+		import crf_kr
+	
 
 
 
