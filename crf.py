@@ -357,19 +357,17 @@ class LinearChainCRF():
 
 
 	def sentense_convert(self, filename):
-		import crf_token_lib
-		tok = crf_token_lib.kr_tokenizer()
-		
+		from nltk.tokenize import syllable_tokenize
+
 		with open(filename,'r',encoding='utf-8') as f:
 			sentenses = f.readlines()
 			emjeol_list = list()
 			for sentense in sentenses:
-				emjeol_list.append(tok.return_emjeol_from_raw(sentense))
-		
+				emjeol_list.append(syllable_tokenize(sentense,"korean"))
 		return emjeol_list
 	
 	def write_result(self,Y_list,filename):
-		output_file = filename.split('.')[0]+'.emjeol'
+		output_file = filename.split('.')[0]+'.result'
 		with open(output_file,'w') as f:
 			for line in Y_list:
 				if line != '\n':
@@ -388,13 +386,12 @@ class LinearChainCRF():
 		Y_list = list()
 
 		for X in emjeol_list:
-			X.pop()
 			Yprime = self.inference(X)
 			for i in range(len(Yprime)):
 				Y_list.append(X[i] + '\t' +Yprime[i])
 		
 
-		self.write_result(Y_list,test_corpus_filename)
+		self.write_result(Y_list,model)
 
 
 

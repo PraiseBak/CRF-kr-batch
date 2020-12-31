@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import re
 import libKoreanString as lib_kr
+#from nltk import korChar
 STARTING_LABEL = '*'		# Label of t=-1
 STARTING_LABEL_INDEX = 0
 
@@ -16,12 +17,26 @@ def return_rowNcol(element):
 
 
 def is_meta_syllable(value):
-	if lib_kr.isNumberSyllable(value):
-		return '1'
-	if lib_kr.isAlphabetChr(value):
-		return 'A'
-	if lib_kr.isHanjaSyllable(value):
-		return '家'
+
+	#print('nltk 버전업글되면 수정해야함!!!')
+
+
+	#if lib_kr.isNumberSyllable(value):
+	#	return '1'
+	#if lib_kr.isAlphabetChr(value):
+	#	return 'A'
+	#if lib_kr.isHanjaSyllable(value):
+	#	return '家'
+
+	
+	
+	
+	#if korChar.isNumberSyllable(value):
+	#	return '1'
+	#if korChar.isAlphabetChr(value):
+	#	return 'A'
+	#if korChar.isHanjaSyllable(value):
+	#	return '家'
 	return value
 
 
