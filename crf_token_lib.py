@@ -32,31 +32,20 @@ class kr_tokenizer():
 	def __init__(self):
 		pass
 
+	def test_code(self):
+		print('just_print',self.return_emjeol_from_raw("이름이 박찬양인 사람"))
+		print('suc',self.return_emjeol_from_word("이름이")[0] == "이")
+		print('fail',self.return_word_tok_from_raw("이름이 박찬양인 사람")[0] != "이름이")
+
 	def return_word_tok_from_raw(self,raw_data = ""):
-		word_tok = word_tokenize(raw_data,'korean')
+		return word_tokenize(raw_data,'korean')
 
-		for word in word_tok:
-			result_word.append(word)
-		return result_word
-	
-	def return_emjeol_n_morph_from_word_file(self,filename):
-		return start(filename)
+	def make_emjeol_n_morph_from_word_file(self,filename):
+		print('file:',start(filename))
 
+	def return_emjeol(self,raw_data):
+		return [emjeol for emjeol in raw_data if emjeol != ' ']
 
-	def return_emjeol_from_raw(self,raw_data):
-		emjeol_list = list()
-		for emjeol in raw_data:
-			if emjeol != ' ':
-				emjeol_list.append(emjeol)
-		return emjeol_list
-
-	def return_emjeol_from_word(self,word):
-		tmp = word.split('\t')
-		emjeol_list = list()
-		for emjeol in word:
-			emjeol_list.append(emjeol)
-		
-		return emjeol_list
 
 		
 
@@ -79,12 +68,14 @@ def test(prediction_filename,anwser_filename):
 
 if __name__ == "__main__":
 	tok = kr_tokenizer()
+	tok.test_code()
+	import sys
+	sys.exit()
 	filename =""
 
 	
 	string = "저는 박찬양입니다"
 	emjeol_list = tok.return_emjeol_from_raw(string)
-	print(emjeol_list)
 #	test(filename)
 
 
