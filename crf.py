@@ -28,6 +28,7 @@ import datetime
 import sys
 from collections import Counter
 from nltk.tokenize import syllable_tokenize, word_tokenize
+import CRF_batch
 import CRF_lib
 
 SCALING_THRESHOLD = 1e250
@@ -312,29 +313,37 @@ class LinearChainCRF():
 
 		# Read the training corpus
 		print("* Reading training data ...\n ")
-		self.training_data = self._read_corpus(corpus_filename)
+		CRF_bat = CRF_batch.CRFBatch(corpus_filename,batch)
+		if batch == False:
+			self.training_data = self._read_corpus(corpus_filename)
+			batch = 1
 		print('Read training data complete')
 
 		# Generate feature set from the corpus
 
 		feature_time_start = time.time()
-		self.feature_set = FeatureSet()
-		self.feature_set.scan(self.training_data)
-		self.label_dic, self.label_array = self.feature_set.get_labels()
-		self.num_labels = len(self.label_array)
+
+		for iter in range(batch):
+			if batch == 1:
+				self.training_data = self._read_corpus(corpus_filename)
+			
+			self.feature_set = FeatureSet()
+			self.feature_set.scan(self.training_data)
+			self.label_dic, self.label_array = self.feature_set.get_labels()
+			self.num_labels = len(self.label_array)
 		
-		print("feature 생성 걸린 시간 = ",time.time() - feature_time_start)
+			print("feature 생성 걸린 시간 = ",time.time() - feature_time_start)
 
-		print("* Number of labels: %d" % (self.num_labels-1))
-		print("* Number of features: %d" % len(self.feature_set))
+			print("* Number of labels: %d" % (self.num_labels-1))
+			print("* Number of features: %d" % len(self.feature_set))
 
-		# Estimates parameters to maximize log-likelihood of the corpus.
-		self._estimate_parameters()
-		self.save_model(model_filename)
+			# Estimates parameters to maximize log-likelihood of the corpus.
+			self._estimate_parameters()
+			self.save_model(model_filename)
 
-		elapsed_time = time.time() - start_time
-		print('*총 소요 시간 Elapsed time: %f' % elapsed_time)
-		print('* [%s] Training done' % datetime.datetime.now())
+			elapsed_time = time.time() - start_time
+			print('*총 소요 시간 Elapsed time: %f' % elapsed_time)
+			print('* [%s] Training done' % datetime.datetime.now())
 
 
 
@@ -379,7 +388,7 @@ class LinearChainCRF():
 			for i in range(len(Yprime)):
 				Y_list.append((X[i],Yprime[i]))
 				#Y_list.append(X[i] + '\t' +Yprime[i])
-
+		print(Y_list)
 		#self.write_result(Y_list,model)
 
 
@@ -541,3 +550,19 @@ def return_emjeol(word_list):
 	for word in word_list:
 		emjeol_list.append(syllable_tokenize(word,'korean'))
 	return emjeol_list
+
+
+
+
+
+def batch_testcode():
+	CRF = LinearChainCRF()
+
+	input_filename = "mini_Sejong.txt"
+	model_name = "test_batch.model"
+	batch = False
+	CRF.train(input_filename,model_name,batch)
+
+
+if __name__ == "__main__":
+	batch_testcode()
