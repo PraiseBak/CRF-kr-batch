@@ -6,10 +6,9 @@ import sys
 import numpy as np
 import re
 import libKoreanString as lib_kr
-#from nltk import korChar
+from nltk import korChar
 STARTING_LABEL = '*'		# Label of t=-1
 STARTING_LABEL_INDEX = 0
-
 
 # 기존 코드는 bag of words를 사용치 않으므로 키값을 일일이 구분하도록 합니다.
 def return_rowNcol(element):
@@ -17,85 +16,17 @@ def return_rowNcol(element):
 
 
 def is_meta_syllable(value):
-
-	#print('nltk 버전업글되면 수정해야함!!!')
-
-
-	#if lib_kr.isNumberSyllable(value):
-	#	return '1'
-	#if lib_kr.isAlphabetChr(value):
-	#	return 'A'
-	#if lib_kr.isHanjaSyllable(value):
-	#	return '家'
-
+	print('v',value,len(value),value=='',value==' ')
 	
-	
-	
-	#if korChar.isNumberSyllable(value):
-	#	return '1'
-	#if korChar.isAlphabetChr(value):
-	#	return 'A'
-	#if korChar.isHanjaSyllable(value):
-	#	return '家'
+	if len(value) == 0 or value == '' or value == ' ':
+		return '휅'
+	if korChar.isNumberSyllable(value):
+		return '1'
+	if korChar.isAlphabetChr(value):
+		return 'A'
+	if korChar.isHanjaSyllable(value):
+		return '家'
 	return value
-
-
-
-
-
-
-
-def feature_setting_test(_, X, t):
-	"""
-	Returns a list of feature strings.
-	(Default feature function)
-	:param X: An observation vector
-	:param t: time
-	:return: A list of feature strings
-	"""
-	length = len(X)
-	f = open('template.txt','r',-1,'utf-8')
-	f.readline()
-	line = f.readlines()
-	features = list()
-	feature = ""
-	a = ""
-	for i in range(len(line)):
-		'한줄씩 템플릿에서 불러와서 feature 생성'
-		tmp_line = line[i]
-		if len(tmp_line) == 1:
-			continue
-		if tmp_line.find(':') == -1:
-			continue
-		key = tmp_line.split(':')[0]
-		element_arr = tmp_line.split(':')[1].split('/')
-		feature = tmp_line.rstrip('\n') + '='
-		value = ""
-		for j in range(len(element_arr)):
-			
-			element = element_arr[j].rstrip('\n')
-
-
-			row, col = return_rowNcol(element)
-			row = int(row)
-			col = int(col)
-			if row > length-t-1 and row >= 0:
-				break
-			elif row + t < 0 and row < 0:
-				break
-			
-			value = X[t+int(row)][int(col)]
-			if value != '\n':
-				value = is_meta_syllable(value)	
-
-			feature += value + '/'
-		if len(value) != 0:
-
-			features.append(feature.rstrip('/'))
-	return features
-
-
-
 
 
 
@@ -111,6 +42,7 @@ def feature_setting(_, X, t):
 	length = len(X)
 	f = open('template.txt','r',-1,'utf-8')
 	f.readline()
+
 	line = f.readlines()
 	features = list()
 	feature = ""
@@ -124,6 +56,7 @@ def feature_setting(_, X, t):
 			continue
 		key = tmp_line.split(':')[0]
 		element_arr = tmp_line.split(':')[1].split('/')
+
 		feature = tmp_line.rstrip('\n') + '='
 		value = ""
 		for j in range(len(element_arr)):
@@ -145,8 +78,8 @@ def feature_setting(_, X, t):
 		if len(value) != 0:
 
 			features.append(feature.rstrip('/'))
+	f.close()
 	return features
-
 
 
 	
@@ -373,6 +306,7 @@ class FeatureSet():
 					self.empirical_counts[feature_id] += 1
 					self.num_features += 1
 					feature_id = self.num_features
+
 				# -1, y 추가
 				else:
 					self.feature_dic[feature_string][(-1, y)] = feature_id
@@ -466,3 +400,7 @@ class FeatureSet():
 				prev_y, y = transition_string.split('_')
 				feature_dic[feature_string][(int(prev_y), int(y))] = feature_id
 		return feature_dic
+
+
+
+

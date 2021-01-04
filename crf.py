@@ -26,10 +26,9 @@ import time
 import json
 import datetime
 import sys
-import crf_token_lib
 from collections import Counter
-from nltk.tokenize import syllable_tokenize
-
+from nltk.tokenize import syllable_tokenize, word_tokenize
+import CRF_lib
 
 SCALING_THRESHOLD = 1e250
 
@@ -244,7 +243,6 @@ class LinearChainCRF():
 		pass
 
 	def _read_corpus(self, filename):
-		print("filename",filename)
 		return read_conll_corpus(filename)
 
 	def _get_training_feature_data(self):
@@ -314,8 +312,7 @@ class LinearChainCRF():
 
 		# Read the training corpus
 		print("* Reading training data ...\n ")
-		tok_lib = crf_token_lib.kr_tokenizer()
-
+		tok_lib = CRF_lib.kr_tokenizer()
 		with open(corpus_filename,'r',encoding = 'utf-8') as f:
 
 			pred_line = f.readline()
@@ -325,13 +322,7 @@ class LinearChainCRF():
 			elif pred_line.split('\t')[1].find('/') == -1:
 				is_word = False
 		
-		if is_word:
-			result_filename = tok_lib.return_emjeol_n_morph_from_word_file(corpus_filename)
-			self.training_data = self._read_corpus(result_filename)
-		else:
-			self.training_data = self._read_corpus(corpus_filename)
-			
-
+		self.training_data = self._read_corpus(corpus_filename)
 		print('Read training data complete')
 
 		# Generate feature set from the corpus
@@ -355,27 +346,8 @@ class LinearChainCRF():
 		print('*총 소요 시간 Elapsed time: %f' % elapsed_time)
 		print('* [%s] Training done' % datetime.datetime.now())
 
-	def sentense_convert_test(self, filename):
-		from nltk.tokenize import syllable_tokenize
-
-		with open(filename,'r',encoding='utf-8') as f:
-			sentenses = f.readlines()
-			emjeol_list = list()
-			for sentense in sentenses:
-				emjeol_list.append(syllable_tokenize(sentense,"korean"))
-		return emjeol_list
 
 
-
-	def sentense_convert(self, filename):
-
-		with open(filename,'r',encoding='utf-8') as f:
-			sentenses = f.readlines()
-			emjeol_list = list()
-			for sentense in sentenses:
-				emjeol_list.append(syllable_tokenize(sentense,"korean"))
-		return emjeol_list
-	
 	def check_filename(self,filename):
 		import os
 		if not os.path.exists(filename):
@@ -384,8 +356,8 @@ class LinearChainCRF():
 			count = 0
 			origin_filename = filename
 			while True:
-				
-				filename = origin_filename + str(count)
+				tmp_filename = origin_filename.split('.')
+				filename = tmp_filename[0] + str(count) +'.'+ tmp_filename[1]
 				if not os.path.exists(filename):
 					return filename
 				count += 1
@@ -402,7 +374,7 @@ class LinearChainCRF():
 		print('result prediction file:',output_file)
 	
 	#CRF.inference_sentense("문장입니다.",model_filename,False)
-	def inference_sentense(self, sentense,model,batch):
+	def inference_sentense(self, sentense,model):
 		self.load(model)
 		if self.params is None:
 			raise BaseException("You should load a model first!")
@@ -428,35 +400,23 @@ class LinearChainCRF():
 			raise BaseException("You should load a model first!")
 		start_time = time.time()
 		emjeol_list = list()
-		emjeol_list = self.sentense_convert(test_corpus_filename)
+		emjeol_list = self.file_to_emjeol(test_corpus_filename)
 		print("코퍼스  읽는데 걸린 시간 =",time.time() - start_time)
+		#마킹 + 음절+ 예측한 형태소
 		Y_list = list()
-
-		for X in emjeol_list:
-			Yprime = self.inference(X)
-			for i in range(len(Yprime)):
-				Y_list.append(X[i] + '\t' +Yprime[i])
-
-		self.write_result(Y_list,model)
-		
-		import crf_kr
-	
-
-
-
-	def test(self, test_corpus_filename,anwser_file): 
-		
-		from nltk.metrics import accuracy
-		print('result:',accuracy(a,b))
-		
-		
-
-		
-
-	
-
-
-
+		for i in range(len(emjeol_list)):
+			for X in emjeol_list[i]:
+				Yprime = self.inference(X)
+				for j in range(len(Yprime)):
+					is_first = 0
+					if j == 0:
+						is_first = 1
+					Y_list.append(str(is_first) + '\t' + X[j] + '\t' +Yprime[j])
+		#마킹기반 어절 + 예측한 형태소
+		word_Y = emjeol_to_word(Y_list)
+		#model파일이름.result에 저장
+		self.write_result(word_Y,model)
+			
 
 
 	def print_test_result(self, test_corpus_filename):
@@ -476,12 +436,12 @@ class LinearChainCRF():
 		potential_table = _generate_potential_table(self.params, self.num_labels,
 													self.feature_set, X, inference=True)
 		#print("추론 테이블 생성에 걸린 시간",time.time() -  generate_table_start)
-		
 		#print(potential_table)
 		viterbi_start = time.time()
 		Yprime = self.viterbi(X, potential_table)
 		#print("viterbi 걸린 시간=",time.time() - viterbi_start)
 		return Yprime
+
 
 	def viterbi(self, X, potential_table):
 		"""
@@ -530,15 +490,19 @@ class LinearChainCRF():
 		f = open(model_filename)
 		model = json.load(f)
 		f.close()
-
 		self.feature_set = FeatureSet()
 		self.feature_set.load(model['feature_dic'], model['num_features'], model['labels'])
 		self.label_dic, self.label_array = self.feature_set.get_labels()
 		self.num_labels = len(self.label_array)
 		self.params = np.asarray(model['params'])
-
 		print('CRF model loaded')
 
+	
+	def file_to_emjeol(self,filename):
+		content = return_file_content(filename)
+		word = return_word(content)
+		emjeol_list = return_emjeol(word)
+		return emjeol_list
 
 # For testing
 #crf = LinearChainCRF()
@@ -550,3 +514,40 @@ class LinearChainCRF():
 #crf.train('data/chunking_2/train.txt', 'data/chunking_2/model_4.json')
 #crf.load('data/chunking_2/model_4.json')
 #crf.test('data/chunking_2/test.txt')
+
+
+def emjeol_to_word(Y):
+	word_Y = list()
+	word_str = ""
+	morph_str = ""	
+	
+	for y in Y:
+		element = y.split('\t')
+		is_first = element[0]
+		if is_first == '1':
+			word_Y.append(word_str + '\t' + morph_str.rstrip('+'))
+			word_str = ""
+			morph_str = ""
+		word_str += element[1]
+		morph_str += element[1]+'/'+element[2] +'+'
+	word_Y.append(word_str + '\t' + morph_str.rstrip('+'))
+	word_Y.pop(0)	
+	return word_Y
+
+def return_file_content(filename):
+	with open(filename,'r',encoding='cp949') as f:
+		return f.readlines()
+
+
+def return_word(content):
+	word_list = list()
+	for line in content:
+		word_list.append(word_tokenize(line,'korean'))
+	return word_list
+
+
+def return_emjeol(word_list):
+	emjeol_list = list()
+	for word in word_list:
+		emjeol_list.append(syllable_tokenize(word,'korean'))
+	return emjeol_list

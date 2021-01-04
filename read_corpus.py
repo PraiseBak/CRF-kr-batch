@@ -43,11 +43,9 @@ def read_conll_corpus(filename):
 	X = list()
 	Y = list()
 	import sys
-		
 	for data_string in data_string_list:
-		
-		words = data_string.strip().split()
-		if len(words) is 0:
+		words = data_string.strip().split('\t')
+		if len(words) is 0 or len(words) is 1:
 			data.append((X, Y))
 			X = list()
 			Y = list()
@@ -55,7 +53,7 @@ def read_conll_corpus(filename):
 			if element_size is 0:
 				element_size = len(words)
 			elif element_size is not len(words):
-				print('err')
+				print("wrong input size")
 				exit()
 			X.append(words[:-1])
 			Y.append(words[-1])
