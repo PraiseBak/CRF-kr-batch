@@ -313,10 +313,10 @@ class LinearChainCRF():
 
 		# Read the training corpus
 		print("* Reading training data ...\n ")
-		CRF_bat = CRF_batch.CRFBatch(corpus_filename,batch)
-		if batch == False:
-			self.training_data = self._read_corpus(corpus_filename)
+		
+		if batch == False or batch == None:
 			batch = 1
+		CRF_bat = CRF_batch.CRFBatch(corpus_filename,batch)
 		print('Read training data complete')
 
 		# Generate feature set from the corpus
@@ -326,6 +326,7 @@ class LinearChainCRF():
 		for iter in range(batch):
 			if batch == 1:
 				self.training_data = self._read_corpus(corpus_filename)
+
 			
 			self.feature_set = FeatureSet()
 			self.feature_set.scan(self.training_data)
