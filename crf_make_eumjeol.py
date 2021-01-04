@@ -4,10 +4,10 @@
 '''
 @Author: Jeong-Won Cha
 @Description:
-
+	
 	[input]
 	어절<tab><tab>형태소 분석
-
+	
 	형태의 문서를 입력받아 다음과 같은 형태로 변환한다.
 
 	[output]
@@ -54,41 +54,23 @@ eumjeol_dict = dict()
 형태의 파일을 출력한다. 
 """
 def step1_make_temp_file(Inf):
-	f = open(Inf[0])
+	
+	f = open(Inf)
 	lines = f.readlines()
 	f.close()
-
-	outputfilename = "_eumjeol_s1.txt"
-	output_f = open(outputfilename, "w")
-
-	print("input : " + Inf[0])
-	print("output : " + outputfilename)
-
-
-
+	result_list = list()
 	for line in lines:
-
-		if line == '\n':
-			output_f.write("\n")
-			continue
-
-		if line == '\r\n':
-			output_f.write('\r\n')
+		if line[0] == '\n':
+			result_list.append("\n")
 			continue
 
 		result = line.strip().split('\t')
 		result_morph = parse_morph_sejong._parse_morph_sejong(result[1])
-		#eojeol = str(result[0],"utf-8")
+
 		eojeol = result[0]
-		#원본1
-		#eojeol = unicode(result[0], enc)
-
-
+		#eojeol = str(result[0], enc)
 		mL = list()
 		for m, t in result_morph:
-			#원본2
-			#m = unicode(m, enc)
-
 			s = 0
 			for e in range(1, len(m)+1):
 				mL.append((m[s:e], t))
@@ -139,9 +121,10 @@ def step1_make_temp_file(Inf):
 			else:
 				eD[k].append(-1)
 				i += 1
-
+		
 		# put something to the blank 
 		i = 0
+
 		for s in range(len(eojeol)) :
 			k = str(s) + eojeol[s:s+1]
 			if eD[k][0] == -1:			# 다른 경우 
@@ -160,35 +143,41 @@ def step1_make_temp_file(Inf):
 						pass
 					elif s <= len(eojeol)-2 and libKoreanString.splitCJJ(mL[eD[k][0]][0])[2] == u'ㅂ' and \
 							libKoreanString.splitCJJ(eojeol[s+1:s+2])[0] == u'ㅇ' and (libKoreanString.splitCJJ(eojeol[s+1:s+2])[1] == u'ㅝ' or libKoreanString.splitCJJ(eojeol[s+1:s+2])[1] == u'ㅜ'):
-								pass
+						pass
 					elif s >0 and libKoreanString.splitCJJ(mL[eD[str(s-1)+eojeol[s-1:s]][0]][0])[2] == u'ㅂ' and \
 							libKoreanString.splitCJJ(eojeol[s:s+1])[0] == u'ㅇ' and (libKoreanString.splitCJJ(eojeol[s:s+1])[1] == u'ㅝ' or libKoreanString.splitCJJ(eojeol[s:s+1])[1] == u'ㅜ'):
-								pass
+						pass
 					elif s <= len(eojeol)-2 and eD[str(s+1)+eojeol[s+1:s+2]][0] == -1 and len(mL)-i-(len(eojeol)-s) >= 1 :
 						eD[k].append(i)
 						i += 1
-
+			
 					# 복수의 비어 있는 것을 추가하는 부분 
 					while (s < len(eojeol)-1 and eD[str(s+1)+eojeol[s+1:s+2]][0] != -1 and  i < eD[str(s+1)+eojeol[s+1:s+2]][0]) \
-							or (s == len(eojeol)-1 and i < len(mL)):
-								#if s < len(eojeol)-1: output_f.write(">>%s----%d\n" % (eojeol[s+1:s+2].encode(enc), eD[str(s+1)+eojeol[s+1:s+2]][0]))
+						or (s == len(eojeol)-1 and i < len(mL)):
+						#if s < len(eojeol)-1: output_f.write(">>%s----%d\n" % (eojeol[s+1:s+2].encode(enc), eD[str(s+1)+eojeol[s+1:s+2]][0]))
 						eD[k].append(i)
 						i += 1
-
 		for s in range(len(eojeol)):
+			result = list()	
 			k = str(s)+eojeol[s:s+1]
 			if eD[k][0] != -1:
-				output_f.write("%d\t" % (1 if s == 0 else 0))
-				output_f.write("%s\t" % k[len(str(s)):])
+				#output_f.write("%d\t" % (1 if s == 0 else 0))
+				result.append("%d" % (1 if s == 0 else 0))
+				result.append("%s" % k[len(str(s)):])
+				#output_f.write("%s\t" % k[len(str(s)):])
 				for i in eD[k]:
-					output_f.write("%s\t%s\t" % (mL[i][0], mL[i][1]))
-				output_f.write("\n")
+					#output_f.write("%s\t%s\t" % (mL[i][0].encode(enc), mL[i][1]))
+					#output_f.write("%s\t%s\t" % (mL[i][0], mL[i][1]))
+					result.append("%s" % (mL[i][0]))
+					result.append("%s" % (mL[i][1]))
+				#result.append("\n")
+				#output_f.write("\n")
 			else:
-				output_f.write("%s\t%s\t%s\n" % (k, "--" , "--"))
-
-	output_f.close()
-
-	return outputfilename
+				#output_f.write("%s\t%s\t%s\n" % k, "--" , "--")
+				result.append("%s\t%s\t%s\n" % k, "--" , "--")
+			result_list.append(result)
+	
+	return result_list
 
 """ 
 temp 파일을 읽어서 다음과 같은 최종본과 사전을 생성한다.
@@ -200,47 +189,45 @@ temp 파일을 읽어서 다음과 같은 최종본과 사전을 생성한다.
 
 한XE	하 XS	ㄴ	EE
 """
-import struct
+def step2_make_eumjeol_file(temp_list,input_filename):
 
 
-def step2_make_eumjeol_file(tF):
+
 	global eumjeol_dict
-	f = open(tF)
-	lines = f.readlines()
-	f.close()
-	outputfilename = "_eumjeol.gld"
-	output_f = open(outputfilename, "w")
-
-	print("input : " + tF)
-	print("output : " + outputfilename)
-
-	line_num = 0
-	for line in lines:
+	outputfilename = input_filename.split('.')[0] + "_eumjeol.gld"
+	output_f = open(outputfilename,'w')
+	for line in temp_list:
 		if line[0] == '\n':
 			output_f.write("\n")
 			line_num = 0
 			continue
-
-
-		result = line.strip().split('\t')
+		
+		result = line
+		#eumjeol = unicode(result[0], enc)
 		eumjeolL = list()
 		# mapping: 세종 태그셋을 단축셋으로 매핑한다.
-
-
 		if len(result)>4:
-			output_f.write ("%s\t%s\n" % (result[1], 'CO'))
+			
+			if result[0] == '1' and mapping_table[result[3]] == 'NN' : 
+
+				output_f.write ("%d\t%s\t%s\n" % (line_num, result[1], 'NS'))
+			elif result[0] == '1' and mapping_table[result[3]] == 'MA' : 
+				output_f.write ("%s\t%s\n" % ( result[1], 'MS'))
+			else:
+				output_f.write ("%s\t%s\n" % ( result[1], 'CO'))
 		else:
-			output_f.write ("%s\t%s\n" % (result[1],result[3]))
-
-						
-
-
-	
+			if result[0] == '1' and mapping_table[result[3]] == 'NN' : 
+				output_f.write ("%s\t%s\n" % ( result[1], 'NS'))
+			elif result[0] == '1' and mapping_table[result[3]] == 'MA' : 
+				output_f.write ("%s\t%s\n" % ( result[1], 'MS'))
+			else:
+				output_f.write ("%s\t%s\n" % ( result[1], mapping_table[result[3]]))
 		#eumjeolL.append(umT)
-		line_num += 1
+		#line_num += 1
+
 		if len(result) <= 4: continue
 		for i in range(2, len(result)):
-			if i%2 == 1: eumjeolL.append(result[i])
+			if i%2 == 1: eumjeolL.append(mapping_table[result[i]])
 			else: eumjeolL.append(result[i])
 		if not result[i] in eumjeol_dict : eumjeol_dict[result[1]] = set()
 		else:
@@ -250,21 +237,19 @@ def step2_make_eumjeol_file(tF):
 	return outputfilename
 
 
+
+
+
+
+
 def start(filename):
-
-	inputfilenames = glob.glob(filename)
-	#inputfilenames = glob.glob("tagged/seJongGold2.txt")
-	inputfilename = inputfilenames
-
-	for inputfilename in inputfilenames:
-		print(inputfilename)
-		tempF = step1_make_temp_file(inputfilenames)
-		output_e = step2_make_eumjeol_file(tempF)
+	input_filename = filename
+	temp_list = step1_make_temp_file(input_filename)
 
 
+	eumjeol_filename = step2_make_eumjeol_file(temp_list,input_filename)
 	
-	outputfilename = inputfilename[:inputfilename.rfind('.')] + "_eumjeol.dict"
-	outputfilename = "eumjeol"+outputfilename[inputfilename.find('/'):]
+	outputfilename = input_filename + "_eumjeol.dict"	
 	output_f = open(outputfilename, "w")
 
 	for k, v in eumjeol_dict.items():
@@ -274,30 +259,9 @@ def start(filename):
 			output_f.write("%s\t" % vS)
 		output_f.write("\n")
 	output_f.close()
-	return output_e
-	
+	return eumjeol_filename
+
+if __name__ == "__main__":
+	start("10000test.dat")
 
 
-if __name__=="__main__":
-
-	inputfilenames = glob.glob("mini_Sejong.txt")
-	#inputfilenames = glob.glob("tagged/seJongGold2.txt")
-	inputfilename = inputfilenames
-
-	for inputfilename in inputfilenames:
-		print(inputfilename)
-		tempF = step1_make_temp_file(inputfilenames)
-		step2_make_eumjeol_file(tempF)
-
-	
-	outputfilename = inputfilename[:inputfilename.rfind('.')] + "_eumjeol.dict"
-	outputfilename = "eumjeol"+outputfilename[inputfilename.find('/'):]
-	output_f = open(outputfilename, "w")
-
-	for k, v in eumjeol_dict.items():
-		if len(v) <= 1: continue
-		output_f.write("%s\t\t" % k)
-		for vS in v:
-			output_f.write("%s\t" % vS)
-		output_f.write("\n")
-	output_f.close()

@@ -5,13 +5,30 @@ from collections import Counter
 import sys
 import numpy as np
 import re
+import libKoreanString as lib_kr
+from nltk import korChar
 STARTING_LABEL = '*'		# Label of t=-1
 STARTING_LABEL_INDEX = 0
-
 
 # 기존 코드는 bag of words를 사용치 않으므로 키값을 일일이 구분하도록 합니다.
 def return_rowNcol(element):
 	return re.findall(r'-?\d+',element)
+
+
+def is_meta_syllable(value):
+	print('v',value,len(value),value=='',value==' ')
+	
+	if len(value) == 0 or value == '' or value == ' ':
+		return '휅'
+	if korChar.isNumberSyllable(value):
+		return '1'
+	if korChar.isAlphabetChr(value):
+		return 'A'
+	if korChar.isHanjaSyllable(value):
+		return '家'
+	return value
+
+
 
 
 def feature_setting(_, X, t):
@@ -25,6 +42,7 @@ def feature_setting(_, X, t):
 	length = len(X)
 	f = open('template.txt','r',-1,'utf-8')
 	f.readline()
+
 	line = f.readlines()
 	features = list()
 	feature = ""
@@ -38,6 +56,7 @@ def feature_setting(_, X, t):
 			continue
 		key = tmp_line.split(':')[0]
 		element_arr = tmp_line.split(':')[1].split('/')
+
 		feature = tmp_line.rstrip('\n') + '='
 		value = ""
 		for j in range(len(element_arr)):
@@ -52,11 +71,15 @@ def feature_setting(_, X, t):
 				break
 			
 			value = X[t+int(row)][int(col)]
+			if value != '\n':
+				value = is_meta_syllable(value)	
+
 			feature += value + '/'
 		if len(value) != 0:
-			features.append(feature.rstrip('/'))
-	return features
 
+			features.append(feature.rstrip('/'))
+	f.close()
+	return features
 
 
 	
@@ -103,8 +126,6 @@ class FeatureSet():
 				# Gets a label id
 				try:
 					y = self.label_dic[Y[t]]
-
-
 				except KeyError:
 					y = len(self.label_dic)
 					self.label_dic[Y[t]] = y
@@ -285,6 +306,7 @@ class FeatureSet():
 					self.empirical_counts[feature_id] += 1
 					self.num_features += 1
 					feature_id = self.num_features
+
 				# -1, y 추가
 				else:
 					self.feature_dic[feature_string][(-1, y)] = feature_id
@@ -378,3 +400,7 @@ class FeatureSet():
 				prev_y, y = transition_string.split('_')
 				feature_dic[feature_string][(int(prev_y), int(y))] = feature_id
 		return feature_dic
+
+
+
+
