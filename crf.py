@@ -329,7 +329,6 @@ class LinearChainCRF():
 			else:
 				self.training_data = CRF_bat.return_corpus()
 			
-			continue
 			self.feature_set = FeatureSet()
 			self.feature_set.scan(self.training_data)
 			self.label_dic, self.label_array = self.feature_set.get_labels()
