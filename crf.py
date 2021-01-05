@@ -271,9 +271,9 @@ class LinearChainCRF():
 			large scale bound constrained optimization (2011), ACM Transactions on Mathematical Software, 38, 1.
 		# 학습전 피쳐
 		'''
-
+		stopwatch('before get features')	
 		training_feature_data = self._get_training_feature_data()
-
+		stopwatch('after get features') 
 		# 학습후피쳐
 
 		print('* Squared sigma:', self.squared_sigma)
@@ -326,8 +326,10 @@ class LinearChainCRF():
 		for iter in range(batch):
 			if batch == 1:
 				self.training_data = self._read_corpus(corpus_filename)
-
+			else:
+				self.training_data = CRF_bat.return_corpus()
 			
+			continue
 			self.feature_set = FeatureSet()
 			self.feature_set.scan(self.training_data)
 			self.label_dic, self.label_array = self.feature_set.get_labels()
@@ -561,7 +563,7 @@ def batch_testcode():
 
 	input_filename = "mini_Sejong.txt"
 	model_name = "test_batch.model"
-	batch = False
+	batch = 4
 	CRF.train(input_filename,model_name,batch)
 
 

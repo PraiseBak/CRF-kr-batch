@@ -121,6 +121,7 @@ class FeatureSet():
 		# Constructs a feature set, and counts empirical counts.]
 		for X, Y in data:
 			prev_y = STARTING_LABEL_INDEX
+			
 			for t in range(len(X)):
 				#print(len(X))
 				# Gets a label id
