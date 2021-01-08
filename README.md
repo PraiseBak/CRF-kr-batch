@@ -32,9 +32,17 @@
 
 - ### Train   
 
+```
+from crf import LinearChainCRF
+CRF = LinearChainCRF()
+CRF.train(input_file,model_name)
+```
+
+```
+python crf_kr.py input_file model_name -m=train
+```
 
 
-![image-20210107171606343](C:\Users\user\AppData\Roaming\Typora\typora-user-images\image-20210107171606343.png)
 
 
 
@@ -46,16 +54,29 @@
 
 
 
-![image-20210107171702294](C:\Users\user\AppData\Roaming\Typora\typora-user-images\image-20210107171702294.png)
+```
+from crf import LinearChainCRF
+CRF = LinearChainCRF()
+CRF.inference_sentence(sentense,model_name)
+```
+
+```
+python crf_kr.py "이것은 문장입니다" model_name
+```
 
 
 
 ### Inference with sentense file
 
-![image-20210107171746039](C:\Users\user\AppData\Roaming\Typora\typora-user-images\image-20210107171746039.png)
+```
+from crf import LinearChainCRF
+CRF = LinearChainCRF()
+CRF.inference_file(file_name,model_name)
+```
 
-
----
+```
+python crf_kr.py file_name model_name -m=inference
+```
 
 
 
@@ -115,9 +136,9 @@ output is model file
 >
 > like this:
 >
-> ![image-20210107171702294](C:\Users\user\AppData\Roaming\Typora\typora-user-images\image-20210107171702294.png)
->
 > 
+>
+> python crf_kr.py "이것은 문장입니다" model_name
 >
 > 
 >
