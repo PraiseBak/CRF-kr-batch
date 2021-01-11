@@ -28,12 +28,12 @@ def test(anwser_file,input_file):
 	utils.test(anwser_file,input_file)
 
 if __name__ == '__main__':
-	usage = "sentense inference mode: crf_kr.py \"이것은 문장입니다\" modelfile\n" 
+	usage = "sentense inference mode: crf_kr.py modelfile\n" 
 	usage_2 = "file inference mode: crf_kr.py test_file model -m=inference\n"
 	usage_3 = "train mode : crf_kr.py train_file model -m=train\n"
 	usage_4 = "test mode : crf_kr.py input_file -a=anwser_file -m=test\ncurrently batch is not executable"
 	parser = argparse.ArgumentParser(usage = '\n'+usage+usage_2+usage_3+usage_4)
-	parser.add_argument("input")
+	parser.add_argument("--input")
 	parser.add_argument("model")
 	parser.add_argument("--anwserfile",'-a')
 	parser.add_argument("--mode",'-m')
@@ -42,8 +42,8 @@ if __name__ == '__main__':
 	
 	crf = LinearChainCRF()
 
-	if	len_args == 2:
-		print(crf.inference_sentense(args.input,args.model))
+	if	len_args == 1:
+		print(crf.inference_sentense(args.model))
 	
 	elif len_args == 3 or len_args == 4:
 		if args.mode == "train":

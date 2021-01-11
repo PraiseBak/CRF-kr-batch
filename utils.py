@@ -128,9 +128,6 @@ def is_meta_syllable(value):
 def return_rowNcol(element):
 	return re.findall(r'-?\d+',element)
 
-	
-
-
 
 # 음절	형태소 형식의 파일에서
 # 음절부분만 가져와 문장으로 만듦

@@ -19,7 +19,7 @@ def feature_setting(_, X, t):
 	:return: A list of feature strings
 	"""
 	length = len(X)
-	f = open('template.txt','r',-1,'utf-8')
+	f = open('template','r',-1,'utf-8')
 	f.readline()
 
 	line = f.readlines()

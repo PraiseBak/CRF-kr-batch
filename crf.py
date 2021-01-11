@@ -323,12 +323,13 @@ class LinearChainCRF():
 
 	#가다듬기
 	#CRF.inference_sentense("문장입니다.",model_filename,False)
-	def inference_sentense(self, sentense,model):
+	def inference_sentense(self,model):
 		self.load(model)
 		if self.params is None:
 			raise BaseException("You should load a model first!")
 		start_time = time.time()
 		emjeol_list = list()
+		sentense = input("input sentense:")
 		emjeol_list = syllable_tokenize(sentense,"korean") 
 		Y_list = list()
 		for X in emjeol_list:
@@ -362,9 +363,9 @@ class LinearChainCRF():
 
 
 		#마킹기반 어절 + 예측한 형태소
-		word_Y = utils.return_converted_word_from_emjeol(Y_list)
+		#word_Y = utils.return_converted_word_from_emjeol(Y_list)
 		#model파일이름.result에 저장
-		utils.write_inference_result(word_Y,model)
+		#utils.write_inference_result(word_Y,model)
 		utils.write_inference_result(YY_list ,model+'emjeol')
 
 
@@ -432,10 +433,11 @@ class LinearChainCRF():
 		try:
 			f = open(model_filename,encoding='utf-8')
 			model = json.load(f)
+			f.close()
 		except Exception as e:
 			f = open(model_filename,encoding="cp949")
 			model = json.load(f)
-		f.close()
+			f.close()
 
 		self.feature_set = FeatureSet()
 		self.feature_set.load(model['feature_dic'], model['num_features'], model['labels'])
