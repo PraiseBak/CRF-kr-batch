@@ -63,6 +63,8 @@ def feature_setting(_, X, t):
 
 	
 class FeatureSet():
+
+	CRF_bat = None
 	count_x = 0
 	feature_dic = dict()
 	observation_set = set()
@@ -83,6 +85,7 @@ class FeatureSet():
 		label_array = [STARTING_LABEL]
 		#feature_func = default_feature_func
 		feature_func = feature_setting
+
 
 
 	def __init__(self, feature_func=None):
@@ -110,7 +113,7 @@ class FeatureSet():
 					self.label_dic[Y[t]] = y
 					self.label_array.append(Y[t])
 				# Adds features
-				self._add(prev_y, y, X, t)
+				self._add(prev_y, y, X, t,CRF_bat)
 				prev_y = y
 			idx += 1
 			#if idx % 1000 == 0 and idx != 0:

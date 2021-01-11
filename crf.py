@@ -32,6 +32,8 @@ from collections import Counter
 from nltk.tokenize import syllable_tokenize, word_tokenize
 from nltk.metrics import accuracy
 import utils
+import CRF_batch
+
 
 SCALING_THRESHOLD = 1e250
 ITERATION_NUM = 0
@@ -285,40 +287,58 @@ class LinearChainCRF():
 
 		
 	#without batch
-	def train(self, corpus_filename, model_filename):
+	def train(self, corpus_filename, model_filename,iteration = None):
 		"""
 		Estimates parameters using conjugate gradient methods.(L-BFGS-B used)
 		"""
+		
 		start_time = time.time()
 		print('[%s] Start training' % datetime.datetime.now())
 
-		# Read the training corpus
-		print("* Reading training data ...\n ")
-		self.training_data = self._read_corpus(corpus_filename)
-		print('Read training data complete')
+		if iteration == None:
+			
+			# Read the training corpus
+			print("* Reading training data ...\n ")
+			self.training_data = self._read_corpus(corpus_filename)
+			print('Read training data complete')
+			# Generate feature set from the corpus
+			self.feature_set = FeatureSet()
+			self.feature_set.scan(self.training_data)
+			self.label_dic, self.label_array = self.feature_set.get_labels()
+			self.num_labels = len(self.label_array)
+			
+			print("* Number of labels: %d" % (self.num_labels-1))
+			print("* Number of features: %d" % len(self.feature_set))
 
-		# Generate feature set from the corpus
+			# Estimates parameters to maximize log-likelihood of the corpus.
+			self._estimate_parameters()
+			self.save_model(model_filename)
 
-		feature_time_start = time.time()
-		self.feature_set = FeatureSet()
-		self.feature_set.scan(self.training_data)
-		self.label_dic, self.label_array = self.feature_set.get_labels()
-		self.num_labels = len(self.label_array)
+		else:
+			self.train_batch(self,corpus_filename,model_filename,iteration)
 		
-		print("feature 생성 걸린 시간 = ",time.time() - feature_time_start)
-	
-		print("* Number of labels: %d" % (self.num_labels-1))
-		print("* Number of features: %d" % len(self.feature_set))
-
-		# Estimates parameters to maximize log-likelihood of the corpus.
-		self._estimate_parameters()
-		self.save_model(model_filename)
 		elapsed_time = time.time() - start_time
 		print('*총 소요 시간 Elapsed time: %f' % elapsed_time)
 		print('* [%s] Training done' % datetime.datetime.now())
-
-
 	
+	def train_batch(self, corpus_filename,model_filename,iteration);
+	
+		CRF_bat = CRF_batch.CRFBatch(corpus_filename,iteration)
+	
+		for iter in range(iteration):
+
+			self.training_data = CRF_bat.return_corpus()
+			self.feature_set = FeatureSet()
+			self.feature_set.scan(self.training_data,CRF_bat)
+			self.label_dic, self.label_array = self.feature_set.get_labels()
+			self.num_labels = len(self.label_array)
+			
+			print("* Number of labels: %d" % (self.num_labels-1))
+			print("* Number of features: %d" % len(self.feature_set))
+		
+		self.save_model(model_filename)
+
+
 
 
 	#가다듬기
@@ -449,14 +469,3 @@ class LinearChainCRF():
 	
 
 
-
-
-
-if __name__ == '__main__':
-	file_name = "./data/small_sentense.dat"
-	model_name = "./model/40000train.model"
-	sentense = "양반네들 앞에서 그네들 조롱하는 소리"
-	a = LinearChainCRF()
-	#print(a.inference_sentense(sentense,model_name))
-	a.inference_file(file_name,model_name)
-	#a.train(file_name,model_name)
