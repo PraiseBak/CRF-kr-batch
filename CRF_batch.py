@@ -57,10 +57,6 @@ class CRFBatch():
 			data.append((X,Y))
 		return data
 
-			
-
-
-
 
 
 
@@ -126,66 +122,8 @@ class feature_file:
 		#self.feature_fw = open('feature_tmp.json','w')
 
 
-	def json_study(self):
-
-		tmp =dict()
-
-		tmp['feature_dic'] = dict()
-		value = dict()
-		value2 = dict()
-		value2['0_0']=0
-		value["U[0]=노랭이"] = value2
-		value["U[1]=노랭이2"] = value2
-		value["U[2]=노랭이3"] = value2	
-		tmp['feature_dic'] = value
-		self.result_write(tmp)
-
-
-		model = json.load(self.feature_fr)
-		print(model)
-		exit()
-
-
-		tmp = dict()
-		tmp['1234']=dict()
-		tmp['1234']['1']='0'
-		tmp['1234']['2']='1'
-		tmp['1']=dict()
-		tmp['1']['1']='2'
-		tmp['1']['2']='3'
-		model = {'노랭이':tmp}
-		json.dump(model,self.feature_fw,ensure_ascii=False, indent=4,separators=(',',':'))
-		self.feature_fw.flush()	
-		self.feature_fw.close()	
-
-		model = json.load(self.feature_fr)
-		print(model)
-		tmp = dict() 
-		tmp = model
-		tmp = tmp['노랭이']['1']
-		tmp['4']=3
-		tmp['5']=5
-		print(tmp)
-		model['노랭이']['1'] = tmp
-		model['노랭이']['5'] = dict()
-		model['노랭이']['5']=6
-		print(model)
-		exit()
-
-		model['노랭이']['1']='1'
-		print(model)
-		self.result_write(model)
-		
-
-		
-
-
-
-
 
 def test_code():
-
-
 
 	file_name = "test.txt"
 	iteration = 4
@@ -214,12 +152,6 @@ def test_code():
 	bat.feature_io.write_feature_str_with_value("U[0]=다",1,1,19)
 	bat.feature_io.write_feature_str_with_value("U[0]=면",1,1,20)
 	bat.feature_io.write_feature_str_with_value("U[0]=.",1,1,21)
-
-	
-
-	
-	
-	
 
 	#print("**피쳐 string 가져오기**")
 	#print(bat.feature_io.get_feature_key("U[0]=엄",0,0,0))

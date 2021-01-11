@@ -93,7 +93,7 @@ class FeatureSet():
 		if feature_func is not None:
 			self.feature_func = feature_func
 
-	def scan(self, data):
+	def scan(self, data,CRF_bat=None):
 		"""
 		Constructs a feature set, a label set,
 			and a counter of empirical counts of each feature from the input data.
@@ -113,7 +113,10 @@ class FeatureSet():
 					self.label_dic[Y[t]] = y
 					self.label_array.append(Y[t])
 				# Adds features
-				self._add(prev_y, y, X, t,CRF_bat)
+				if CRF_bat == None:
+					self._add(prev_y, y, X, t)
+				else:
+					self._add(prev_y, y, X, t,CRF_bat)
 				prev_y = y
 			idx += 1
 			#if idx % 1000 == 0 and idx != 0:
@@ -131,7 +134,7 @@ class FeatureSet():
 
 
 	#modify ver 2.0
-	def _add(self, prev_y, y, X, t):
+	def _add(self, prev_y, y, X, t,CRF_bat=None):
 		"""
 		Generates features, constructs feature_dic.
 		:param prev_y: previous label
@@ -152,7 +155,12 @@ class FeatureSet():
 					else:
 						#없으면 prev y랑 y 피쳘 딕셔너리에 추가
 						feature_id = self.num_features
-						self.feature_dic[feature_string][(prev_y, y)] = feature_id
+						#TODO 이런식으로 구현
+						if CRF_bat == None:
+
+							self.feature_dic[feature_string][(prev_y, y)] = feature_id
+						else:
+
 						self.empirical_counts[feature_id] += 1
 						self.num_features += 1
 
