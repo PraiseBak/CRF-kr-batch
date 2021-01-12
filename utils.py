@@ -121,7 +121,6 @@ def is_meta_syllable(value):
 			return '家'
 		return value
 	except Exception as e:
-		print('잡아내지 못한 문자:'+value+'.',e)
 		return '휅'
 
 

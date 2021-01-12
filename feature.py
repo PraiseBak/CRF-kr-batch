@@ -77,7 +77,7 @@ class FeatureSet():
 	feature_func = feature_setting
 	def _init(self):
 		feature_dic = dict()
-		observation_set = set()
+		bservation_set = set()
 		empirical_counts = Counter()
 		num_features = 0
 
@@ -132,8 +132,58 @@ class FeatureSet():
 	def __len__(self):
 		return self.num_features
 
+	def adding_features_file_and_dict(self,feature_string,prev_y,y,feature_id):
+		feature_id = self.num_features
+		self.feature_dic[feature_string][(prev_y, y)] = feature_id
+		if CRF_bat is not None:
+			CRF_bat.feature_io.write_feature_into_file(feature_string,prev_y,y,feature_id)
+		self.empirical_counts[feature_id] += 1
+		self.num_features += 1
 
-	#modify ver 2.0
+
+	#code refactoring
+	def _add(self, prev_y, y, X, t,CRF_bat=None):
+		"""
+		Generates features, constructs feature_dic.
+		:param prev_y: previous label
+		:param y: present label
+		:param X: observation vector
+		:param t: time
+		"""
+
+		for feature_string in self.feature_func(X, t):
+			#print("피쳐 스트링=",feature_string)
+			#현재 단어가 피쳐 딕셔너리 키에 있다
+			key = feature_string[0]
+			if feature_string in self.feature_dic.keys():
+				if key != 'U':
+					#현재 단어의 prev y 랑 y가 이미 딕셔너리 피쳐에 있다
+					if (prev_y, y) in self.feature_dic[feature_string].keys():
+						self.empirical_counts[self.feature_dic[feature_string][(prev_y, y)]] += 1
+					else:
+						#없으면 prev y랑 y 피쳘 딕셔너리에 추가
+						self.adding_features_file_and_dict(feature_string,prev_y,y,feature_id)
+
+				#prev y랑 y 가 -1,y 가여도 피쳐 딕셔너리에 이미 있으면 임페리컬 카운트 증가
+				else:
+					if (-1, y) in self.feature_dic[feature_string].keys():
+						self.empirical_counts[self.feature_dic[feature_string][(-1, y)]] += 1
+					else:
+						self.adding_features_file_and_dict(feature_string,-1,y,feature_id)
+			
+			else:
+				# 현재 피쳐 스트링이 피쳐 딕셔너리에 없다 (처음 나왔다)
+				self.feature_dic[feature_string] = dict()
+				#prev y , y추가
+				if key != 'U':
+					self.adding_features_file_and_dict(feature_string,-1,y,feature_id)
+				else:
+					self.adding_features_file_and_dict(feature_string,-1,y,feature_id)
+	
+
+
+
+	#original code (parameter CRF_bat is added) 
 	def _add(self, prev_y, y, X, t,CRF_bat=None):
 		"""
 		Generates features, constructs feature_dic.
@@ -156,11 +206,10 @@ class FeatureSet():
 						#없으면 prev y랑 y 피쳘 딕셔너리에 추가
 						feature_id = self.num_features
 						#TODO 이런식으로 구현
-						if CRF_bat == None:
-
-							self.feature_dic[feature_string][(prev_y, y)] = feature_id
-						else:
-
+						self.feature_dic[feature_string][(prev_y, y)] = feature_id
+						if CRF_bat is not None:
+							CRF_bat.feature_io.write_feature_into_file(feature_string,prev_y,y,feature_id)
+						
 						self.empirical_counts[feature_id] += 1
 						self.num_features += 1
 
@@ -172,6 +221,8 @@ class FeatureSet():
 					else:
 						feature_id = self.num_features
 						self.feature_dic[feature_string][(-1, y)] = feature_id
+						if CRF_bat is not None:
+							CRF_bat.feature_io.write_feature_into_file(feature_string,-1,y,feature_id)
 						self.empirical_counts[feature_id] += 1
 						self.num_features += 1
 			else:
@@ -182,11 +233,17 @@ class FeatureSet():
 
 				if key != 'U':
 					self.feature_dic[feature_string][(prev_y, y)] = feature_id
+					if CRF_bat is not None:
+						CRF_bat.feature_io.write_feature_into_file(feature_string,prev_y,y,feature_id)
 					self.empirical_counts[feature_id] += 1
 					self.num_features += 1
 					feature_id = self.num_features
 				# -1, y 추가
-				else:	
+				else:
+					
+					self.feature_dic[feature_string][(-1, y)] = feature_id
+					if CRF_bat is not None:
+						CRF_bat.feature_io.write_feature_into_file(feature_string,-1,y,feature_id)
 					self.feature_dic[feature_string][(-1, y)] = feature_id
 					self.empirical_counts[feature_id] += 1
 					self.num_features += 1

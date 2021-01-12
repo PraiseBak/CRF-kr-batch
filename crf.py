@@ -97,6 +97,7 @@ def _forward_backward(num_labels, time_length, potential_table):
 	scaling_dic = dict()
 	t = 0
 	for label_id in range(num_labels):
+		#potential table 길이가 0	
 		alpha[t, label_id] = potential_table[t][STARTING_LABEL_INDEX, label_id]
 	#alpha[0, :] = potential_table[0][STARTING_LABEL_INDEX, :]  # slow
 	t = 1
@@ -164,6 +165,7 @@ def _log_likelihood(params, *args):
 		potential_table = _generate_potential_table(params, len(label_dic), feature_set,
 													X_features, inference=False)
 
+		
 		i += 1
 		alpha, beta, Z, scaling_dic = _forward_backward(len(label_dic), len(X_features), potential_table)
 		total_logZ += log(Z) + \
@@ -271,7 +273,7 @@ class LinearChainCRF():
 							  args=(self.training_data, self.feature_set, training_feature_data,
 									self.feature_set.get_empirical_counts(),
 									self.label_dic, self.squared_sigma),
-							  maxiter=10,
+							  maxiter=1,
 							  
 							  callback=_callback)
 		print('   ========================')
@@ -315,28 +317,33 @@ class LinearChainCRF():
 			self.save_model(model_filename)
 
 		else:
-			self.train_batch(self,corpus_filename,model_filename,iteration)
+			self.train_batch(corpus_filename,model_filename,iteration)
 		
 		elapsed_time = time.time() - start_time
 		print('*총 소요 시간 Elapsed time: %f' % elapsed_time)
 		print('* [%s] Training done' % datetime.datetime.now())
 	
-	def train_batch(self, corpus_filename,model_filename,iteration);
-	
+	def train_batch(self, corpus_filename,model_filename,iteration):
+		iteration = int(iteration)
 		CRF_bat = CRF_batch.CRFBatch(corpus_filename,iteration)
-	
+
 		for iter in range(iteration):
+			if iter == 0:
+				first = True
 
 			self.training_data = CRF_bat.return_corpus()
-			self.feature_set = FeatureSet()
+			input("press to print data")
+			print(self.training_data)
+			if first:	self.feature_set = FeatureSet()
 			self.feature_set.scan(self.training_data,CRF_bat)
-			self.label_dic, self.label_array = self.feature_set.get_labels()
-			self.num_labels = len(self.label_array)
+			if first:	self.label_dic, self.label_array = self.feature_set.get_labels()
 			
+			self.num_labels = len(self.label_array)
 			print("* Number of labels: %d" % (self.num_labels-1))
 			print("* Number of features: %d" % len(self.feature_set))
-		
-		self.save_model(model_filename)
+			self._estimate_parameters()
+			first = False		
+		self.save_model(model_filename,CRF_bat)
 
 
 
@@ -422,8 +429,12 @@ class LinearChainCRF():
 			sequence.append(next_label)
 		return [self.label_dic[label_id] for label_id in sequence[::-1][1:]]
 
-	def save_model(self, model_filename):
-		model = {"feature_dic": self.feature_set.serialize_feature_dic(),
+	def save_model(self, model_filename,CRF_bat=None):
+		if CRF_bat != None:
+			fea_dic = CRF_bat.feature_io.get_feature_from_file()
+		else:
+			fea_dic = self.feature_set.serialize_feature_dic()
+		model = {"feature_dic": fea_dic,
 				 "num_features": self.feature_set.num_features,
 				 "labels": self.feature_set.label_array,
 				 "params": list(self.params)}

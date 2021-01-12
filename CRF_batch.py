@@ -36,7 +36,7 @@ class CRFBatch():
 		idx = 0
 		while True:
 			line = self.f.readline()
-			print(line)
+			if not line: break
 			line = line.strip().split('\t')
 			if len(line) is 0 or len(line) is 1:
 				data.append((X,Y))
@@ -74,6 +74,11 @@ class feature_file:
 	def init_read_file(self):
 		self.feature_fr = open(self.feature_tmp_file,'r')
 
+	def get_feature_from_file(self):
+		with open(self.feature_tmp_file,'r') as f:
+			return json.load(f)['feature_dic']
+			
+
 	def set_feature_f(self):
 		self.init_write_file()
 		self.init_read_file()
@@ -89,8 +94,7 @@ class feature_file:
 		return y_dict
 
 
-	def write_feature_str_with_value(self,feature_string,prev_y,y,feature_id):
-		
+	def write_feature_into_file(self,feature_string,prev_y,y,feature_id):
 		value = self.get_y_dict(prev_y,y,feature_id)
 		
 		try:
@@ -113,46 +117,41 @@ class feature_file:
 			self.result_write(result)
 
 
-	def write_only_value(self,feature_string,prev_y,y,feature_id):
-		key = self.get_feature_key(feature_string,prev_y,y,feature_id)
-		tmp = json.load(self.feature_fr)
-		print(tmp)
-		#feature_dic = tmp['feature_dic']
-		#print(feature_dic)
-		#self.feature_fw = open('feature_tmp.json','w')
-
 
 
 def test_code():
-
+	import feature
 	file_name = "test.txt"
 	iteration = 4
 	bat = CRFBatch(file_name,iteration)
-	#bat.feature_io.json_study()
+	data = bat.return_corpus()
+	fea = feature.FeatureSet()
+	fea.scan(data,bat)
 
-	bat.feature_io.write_feature_str_with_value("U[0]=노",0,0,0)
-	bat.feature_io.write_feature_str_with_value("U[0]=랭",0,0,1)
-	bat.feature_io.write_feature_str_with_value("U[0]=이",0,0,2)
-	bat.feature_io.write_feature_str_with_value("U[0]=이",0,0,3)
-	bat.feature_io.write_feature_str_with_value("U[0]=집",1,1,4)
-	bat.feature_io.write_feature_str_with_value("U[0]=에",1,1,5)
-	bat.feature_io.write_feature_str_with_value("U[0]=온",1,1,6)
-	bat.feature_io.write_feature_str_with_value("U[0]=다",1,1,7)
-	bat.feature_io.write_feature_str_with_value("U[0]=.",1,1,8)
-	bat.feature_io.write_feature_str_with_value("U[0]=그",1,1,9)
-	bat.feature_io.write_feature_str_with_value("U[0]=볼",1,1,10)
-	bat.feature_io.write_feature_str_with_value("U[0]=을",1,1,11)
-	bat.feature_io.write_feature_str_with_value("U[0]=한",1,1,12)
-	bat.feature_io.write_feature_str_with_value("U[0]=번",1,1,13)
-	bat.feature_io.write_feature_str_with_value("U[0]=더",1,1,14)
-	bat.feature_io.write_feature_str_with_value("U[0]=안",1,1,15)
-	bat.feature_io.write_feature_str_with_value("U[0]=을",1,1,16)
-	bat.feature_io.write_feature_str_with_value("U[0]=수",1,1,17)
-	bat.feature_io.write_feature_str_with_value("U[0]=있",1,1,18)
-	bat.feature_io.write_feature_str_with_value("U[0]=다",1,1,19)
-	bat.feature_io.write_feature_str_with_value("U[0]=면",1,1,20)
-	bat.feature_io.write_feature_str_with_value("U[0]=.",1,1,21)
-
+	'''
+	bat.feature_io.write_feature_into_feature("U[0]=노",0,0,0)
+	bat.feature_io.write_feature_into_feature("U[0]=랭",0,0,1)
+	bat.feature_io.write_feature_into_feature("U[0]=이",0,0,2)
+	bat.feature_io.write_feature_into_feature("U[0]=이",0,0,3)
+	bat.feature_io.write_feature_into_feature("U[0]=집",1,1,4)
+	bat.feature_io.write_feature_into_feature("U[0]=에",1,1,5)
+	bat.feature_io.write_feature_into_feature("U[0]=온",1,1,6)
+	bat.feature_io.write_feature_into_feature("U[0]=다",1,1,7)
+	bat.feature_io.write_feature_into_feature("U[0]=.",1,1,8)
+	bat.feature_io.write_feature_into_feature("U[0]=그",1,1,9)
+	bat.feature_io.write_feature_into_feature("U[0]=볼",1,1,10)
+	bat.feature_io.write_feature_into_feature("U[0]=을",1,1,11)
+	bat.feature_io.write_feature_into_feature("U[0]=한",1,1,12)
+	bat.feature_io.write_feature_into_feature("U[0]=번",1,1,13)
+	bat.feature_io.write_feature_into_feature("U[0]=더",1,1,14)
+	bat.feature_io.write_feature_into_feature("U[0]=안",1,1,15)
+	bat.feature_io.write_feature_into_feature("U[0]=을",1,1,16)
+	bat.feature_io.write_feature_into_feature("U[0]=수",1,1,17)
+	bat.feature_io.write_feature_into_feature("U[0]=있",1,1,18)
+	bat.feature_io.write_feature_into_feature("U[0]=다",1,1,19)
+	bat.feature_io.write_feature_into_feature("U[0]=면",1,1,20)
+	bat.feature_io.write_feature_into_feature("U[0]=.",1,1,21)
+	'''
 	#print("**피쳐 string 가져오기**")
 	#print(bat.feature_io.get_feature_key("U[0]=엄",0,0,0))
 
