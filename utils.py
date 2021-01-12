@@ -92,7 +92,7 @@ def test(prediction_filename,anwser_filename):
 			if line != '\n' and len(line.split('\t')) > 1:
 				re_anwser.append(line)
 	
-	with open(prediction_filename,'r',encoding = 'cp949') as f2:
+	with open(prediction_filename,'r') as f2:
 		pred_list = f2.readlines()
 		re_pred_list = list()
 		for line in pred_list:
@@ -151,9 +151,25 @@ def emjeol_to_sentense(filename):
 			f.write(i+'\n')
 
 		
+
+def debug_params_write(params):
+	#if params.tolist()[0] > 0:
+		#input("input to write")
+
+	with open("params.debug",'w') as f:
+		for i in params.tolist():
+			f.write(str(i)+'\n')
+	
+
+	
+
+
+
+
 if __name__ == "__main__":
-	data = "./data/5000.dat"
-	test(data,"9.result")
+	data = "./no_batch_model.result"
+	data2 = "./batch_model.result"
+	test(data,data2)
 	#emjeol_to_sentense(data)
 	
 

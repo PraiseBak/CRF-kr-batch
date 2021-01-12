@@ -63,6 +63,7 @@ def _generate_potential_table(params, num_labels, feature_set, X, inference=True
 		table = np.zeros((num_labels, num_labels))
 		if inference:
 			for (prev_y, y), score in feature_set.calc_inner_products(params, X, t):
+
 				if prev_y == -1:
 					table[:, y] += score
 				else:
@@ -81,6 +82,7 @@ def _generate_potential_table(params, num_labels, feature_set, X, inference=True
 		else:
 			table[:,STARTING_LABEL_INDEX] = 0
 			table[STARTING_LABEL_INDEX,:] = 0
+
 		tables.append(table)
 	return tables
 
@@ -161,7 +163,14 @@ def _log_likelihood(params, *args):
 
 	i = 0
 	import time
+
+	
+
 	for X_features in training_feature_data:
+
+		#이부분 삭제 할 것
+		utils.debug_params_write(params)
+
 		potential_table = _generate_potential_table(params, len(label_dic), feature_set,
 													X_features, inference=False)
 
@@ -332,8 +341,6 @@ class LinearChainCRF():
 				first = True
 
 			self.training_data = CRF_bat.return_corpus()
-			input("press to print data")
-			print(self.training_data)
 			if first:	self.feature_set = FeatureSet()
 			self.feature_set.scan(self.training_data,CRF_bat)
 			if first:	self.label_dic, self.label_array = self.feature_set.get_labels()
