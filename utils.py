@@ -88,10 +88,10 @@ def test(prediction_filename,anwser_filename):
 		anwser_list = f.readlines()
 		re_anwser = list() 
 		for line in anwser_list:
-				
+
 			if line != '\n' and len(line.split('\t')) > 1:
 				re_anwser.append(line)
-	
+
 	with open(prediction_filename,'r') as f2:
 		pred_list = f2.readlines()
 		re_pred_list = list()
@@ -99,11 +99,11 @@ def test(prediction_filename,anwser_filename):
 			if line != '\n' and len(line.split('\t')) > 1:
 				re_pred_list.append(line)
 	from nltk.metrics import accuracy
-		
+
 	for i in range(len(re_pred_list)):
 		if re_pred_list[i] != re_anwser[i]:
 			print("P:",re_pred_list[i]+"A:",re_anwser[i])
-			
+
 	print('result:',accuracy(re_anwser,re_pred_list))
 
 
@@ -131,12 +131,12 @@ def return_rowNcol(element):
 # 음절	형태소 형식의 파일에서
 # 음절부분만 가져와 문장으로 만듦
 def emjeol_to_sentense(filename):
-	with open(filename,'r',encoding = "cp949") as f:
+	with open(filename,'r') as f:
 		data =f.readlines()
 		sentense_list = list()
 		sentense = ""
 		for line in data:
-				
+
 			splited_line = line.split('\t')
 			x = splited_line[0]
 			if len(splited_line) == 0 or len(splited_line) == 1:
@@ -150,7 +150,7 @@ def emjeol_to_sentense(filename):
 		for i in sentense_list:
 			f.write(i+'\n')
 
-		
+
 
 def debug_params_write(params):
 	#if params.tolist()[0] > 0:
@@ -159,18 +159,72 @@ def debug_params_write(params):
 	with open("params.debug",'w') as f:
 		for i in params.tolist():
 			f.write(str(i)+'\n')
-	
-
-	
 
 
 
 
-if __name__ == "__main__":
-	data = "./no_batch_model.result"
-	data2 = "./batch_model.result"
+def write_anyway(thing):
+	"""
+	training_feature_data
+	"""
+
+	'''
+	모든 X에 대한.
+	즉[[(prev_y,y),id)] in X] in whole_data
+	'''
+	f = open('test.txt','w')
+
+	for i in thing:
+		'''
+		[(prev_y,y),id)] - X 단위.
+		X는 한 문장의 모든 음절의 리스트
+		X
+		['양'], ['반'], ['네'], ['들'], ['앞'], ['에'], ['서'],
+		['그'], ['네'], ['들'], ['조'], ['롱']....
+		'''
+		for j in i:
+			"""
+			(prev_y,y),id
+			"""
+			for k,n in j:
+				str_tmp = "("
+				for m in list(k):
+					str_tmp += str(m) +','
+				str_tmp = str_tmp.rstrip(',')+(')')
+				print(str_tmp.rstrip(',')+')')
+				f.write(str_tmp + ':' + str(n)+', ')
+
+			
+			f.write('\n')
+
+def ining_feature_data_for_batch(self):
+	result = list()
+	result2 = list()
+	for X, _ in self.training_data:
+		result = list()
+		for t in range(len(X)):
+			result.append(self.feature_set.get_feature_list(X, t)) 
+		result2.append(result)
+	return result2
+
+
+
+def _get_training_feature_data(self):
+	return [[self.feature_set.get_feature_list(X, t) for t in range(len(X))]
+			for X, _ in self.training_data]
+
+
+
+
+
+
+if  __name__ == "__main__":
+	file_name = "test.gld"
+
+	data = "./no_batch_model0.result"
+	data2 = "./batch_model0.result"
 	test(data,data2)
-	#emjeol_to_sentense(data)
-	
+	#emjeol_to_sentense(file_name)
+
 
 

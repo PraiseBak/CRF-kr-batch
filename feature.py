@@ -64,7 +64,6 @@ def feature_setting(_, X, t):
 	
 class FeatureSet():
 
-	CRF_bat = None
 	count_x = 0
 	feature_dic = dict()
 	observation_set = set()
@@ -93,7 +92,7 @@ class FeatureSet():
 		if feature_func is not None:
 			self.feature_func = feature_func
 
-	def scan(self, data,CRF_bat=None):
+	def scan(self, data):
 		"""
 		Constructs a feature set, a label set,
 			and a counter of empirical counts of each feature from the input data.
@@ -113,10 +112,7 @@ class FeatureSet():
 					self.label_dic[Y[t]] = y
 					self.label_array.append(Y[t])
 				# Adds features
-				if CRF_bat == None:
-					self._add(prev_y, y, X, t)
-				else:
-					self._add(prev_y, y, X, t,CRF_bat)
+				self._add(prev_y, y, X, t)
 				prev_y = y
 			idx += 1
 			#if idx % 1000 == 0 and idx != 0:
@@ -131,7 +127,8 @@ class FeatureSet():
 
 	def __len__(self):
 		return self.num_features
-
+	
+	"""
 	def adding_features_file_and_dict(self,feature_string,prev_y,y,feature_id):
 		feature_id = self.num_features
 		self.feature_dic[feature_string][(prev_y, y)] = feature_id
@@ -139,6 +136,7 @@ class FeatureSet():
 			CRF_bat.feature_io.write_feature_into_file(feature_string,prev_y,y,feature_id)
 		self.empirical_counts[feature_id] += 1
 		self.num_features += 1
+	"""
 
 
 	#code refactoring
@@ -184,7 +182,7 @@ class FeatureSet():
 
 
 	#original code (parameter CRF_bat is added) 
-	def _add(self, prev_y, y, X, t,CRF_bat=None):
+	def _add(self, prev_y, y, X, t):
 		"""
 		Generates features, constructs feature_dic.
 		:param prev_y: previous label
@@ -207,9 +205,6 @@ class FeatureSet():
 						feature_id = self.num_features
 						#TODO 이런식으로 구현
 						self.feature_dic[feature_string][(prev_y, y)] = feature_id
-						if CRF_bat is not None:
-							CRF_bat.feature_io.write_feature_into_file(feature_string,prev_y,y,feature_id)
-						
 						self.empirical_counts[feature_id] += 1
 						self.num_features += 1
 
@@ -221,8 +216,6 @@ class FeatureSet():
 					else:
 						feature_id = self.num_features
 						self.feature_dic[feature_string][(-1, y)] = feature_id
-						if CRF_bat is not None:
-							CRF_bat.feature_io.write_feature_into_file(feature_string,-1,y,feature_id)
 						self.empirical_counts[feature_id] += 1
 						self.num_features += 1
 			else:
@@ -233,17 +226,12 @@ class FeatureSet():
 
 				if key != 'U':
 					self.feature_dic[feature_string][(prev_y, y)] = feature_id
-					if CRF_bat is not None:
-						CRF_bat.feature_io.write_feature_into_file(feature_string,prev_y,y,feature_id)
 					self.empirical_counts[feature_id] += 1
 					self.num_features += 1
 					feature_id = self.num_features
 				# -1, y 추가
 				else:
 					
-					self.feature_dic[feature_string][(-1, y)] = feature_id
-					if CRF_bat is not None:
-						CRF_bat.feature_io.write_feature_into_file(feature_string,-1,y,feature_id)
 					self.feature_dic[feature_string][(-1, y)] = feature_id
 					self.empirical_counts[feature_id] += 1
 					self.num_features += 1
@@ -307,18 +295,12 @@ class FeatureSet():
 		#self.count_x += 1
 
 		for feature_string in self.feature_func(X, t):
-			# 각 feature string마다
-			# feature 딕셔너리 생성한 것에서
-			# (이전 y,현재 y) = (이전 y,현재 y를 가지는 피쳐 id)
 			for (prev_y, y), feature_id in self.feature_dic[feature_string].items():
-
 				if (prev_y, y) in feature_list_dic.keys():
-
 					feature_list_dic[(prev_y, y)].add(feature_id)
 				else:
 					feature_list_dic[(prev_y, y)] = {feature_id}
 		return [((prev_y, y), feature_ids) for (prev_y, y), feature_ids in feature_list_dic.items()]
-		#prev_y,y를 키로 feature_id를 value로 가지는 dict 하나를 각각의 요소로 가지는 리스트
 
 	def serialize_feature_dic(self):
 		serialized = dict()

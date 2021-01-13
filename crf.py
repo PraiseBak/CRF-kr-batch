@@ -152,7 +152,89 @@ def _calc_path_score(potential_table, scaling_dic, Y, label_dic):
 		prev_y = y
 
 
+
+
+
+#배치 적용중인 로그라이크리후드
+
 def _log_likelihood(params, *args):
+	"""
+	Calculate likelihood and gradient
+	"""
+	training_data, feature_set, training_feature_data, empirical_counts, label_dic, squared_sigma = args
+	expected_counts = np.zeros(len(feature_set))
+	total_logZ = 0
+
+	i = 0
+	import time 
+	for	X_features in training_feature_data:
+
+		i+=1
+		potential_table = _generate_potential_table(params, len(label_dic), feature_set,
+													X_features, inference=False)
+
+		
+		i += 1
+		alpha, beta, Z, scaling_dic = _forward_backward(len(label_dic), len(X_features), potential_table)
+		total_logZ += log(Z) + \
+					  sum(log(scaling_coefficient) for _, scaling_coefficient in scaling_dic.items())
+
+		for t in range(len(X_features)): # 어절 loop
+			potential = potential_table[t]
+			for (prev_y, y), feature_ids in X_features[t]:
+				# Adds p(prev_y, y | X, t)
+				# print (prev_y)
+				# print (y)
+				if prev_y == -1:
+					if t in scaling_dic.keys():
+						prob = (alpha[t, y] * beta[t, y] * scaling_dic[t])/Z
+					else:
+						prob = (alpha[t, y] * beta[t, y])/Z
+				elif t == 0:
+					if prev_y is not STARTING_LABEL_INDEX:
+						continue
+					else:
+						prob = (potential[STARTING_LABEL_INDEX, y] * beta[t, y])/Z
+				else:
+					if prev_y is STARTING_LABEL_INDEX or y is STARTING_LABEL_INDEX:
+						continue
+					else:
+						prob = (alpha[t-1, prev_y] * potential[prev_y, y] * beta[t, y]) / Z
+				for fid in feature_ids:
+					expected_counts[fid] += prob
+					if prob < 0:
+						print(prob)
+	likelihood = np.dot(empirical_counts, params) - total_logZ - \
+				 np.sum(np.dot(params,params))/(squared_sigma*2)
+	gradients = empirical_counts - expected_counts - params/squared_sigma
+
+	global GRADIENT
+	GRADIENT = gradients
+
+	
+	global SUB_ITERATION_NUM
+	sub_iteration_str = '	'
+	if SUB_ITERATION_NUM > 0:
+		sub_iteration_str = '(' + '{0:02d}'.format(SUB_ITERATION_NUM) + ')'
+	print('  ', '{0:03d}'.format(ITERATION_NUM), sub_iteration_str, ':', likelihood * -1)
+
+	SUB_ITERATION_NUM += 1
+	return likelihood * -1
+
+
+
+
+
+
+
+
+
+
+
+
+#기존 배치 적용 전 log likelihood
+
+def _log_likelihood2(params, *args, CRF_bat=None):
 	"""
 	Calculate likelihood and gradient
 	"""
@@ -164,13 +246,10 @@ def _log_likelihood(params, *args):
 	i = 0
 	import time
 
-	
 
 	for X_features in training_feature_data:
-
+		i+=1
 		#이부분 삭제 할 것
-		utils.debug_params_write(params)
-
 		potential_table = _generate_potential_table(params, len(label_dic), feature_set,
 													X_features, inference=False)
 
@@ -234,7 +313,7 @@ class LinearChainCRF():
 
 	training_data = None
 	feature_set = None
-
+	CRF_bat = None
 	label_dic = None
 	label_array = None
 	num_labels = None
@@ -249,10 +328,26 @@ class LinearChainCRF():
 
 	def _read_corpus(self, filename):
 		return read_conll_corpus(filename)
+	
+	
+	def _get_training_feature_data_for_batch(self):
+		result = list()
+		result2 = list()
+		for X, _ in self.training_data:
+			result = list()
+			for t in range(len(X)):
+				result.append(self.feature_set.get_feature_list(X, t))
+			result2.append(result)
+		return result2
+		
+
 
 	def _get_training_feature_data(self):
 		return [[self.feature_set.get_feature_list(X, t) for t in range(len(X))]
 				for X, _ in self.training_data]
+
+
+	
 
 	def _estimate_parameters(self):
 		"""
@@ -266,8 +361,13 @@ class LinearChainCRF():
 			- J.L. Morales and J. Nocedal. L-BFGS-B: Remark on Algorithm 778: L-BFGS-B, FORTRAN routines for
 			large scale bound constrained optimization (2011), ACM Transactions on Mathematical Software, 38, 1.
 		"""
+		if self.CRF_bat == None:
+			training_feature_data = self._get_training_feature_data()
+		else:
+			training_feature_data = self._get_training_feature_data_for_batch()
+
+		#utils.write_anyway(training_feature_data)
 		
-		training_feature_data = self._get_training_feature_data()
 		# 학습후피쳐
 
 		print('* Squared sigma:', self.squared_sigma)
@@ -324,7 +424,6 @@ class LinearChainCRF():
 			# Estimates parameters to maximize log-likelihood of the corpus.
 			self._estimate_parameters()
 			self.save_model(model_filename)
-
 		else:
 			self.train_batch(corpus_filename,model_filename,iteration)
 		
@@ -334,23 +433,20 @@ class LinearChainCRF():
 	
 	def train_batch(self, corpus_filename,model_filename,iteration):
 		iteration = int(iteration)
-		CRF_bat = CRF_batch.CRFBatch(corpus_filename,iteration)
+		self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,iteration)
+		self.feature_set = FeatureSet()
+		self.training_data = self._read_corpus(corpus_filename)
+		self.feature_set.scan(self.training_data)
+		self.label_dic, self.label_array = self.feature_set.get_labels()
+		self.num_labels = len(self.label_array)
 
 		for iter in range(iteration):
-			if iter == 0:
-				first = True
-
-			self.training_data = CRF_bat.return_corpus()
-			if first:	self.feature_set = FeatureSet()
-			self.feature_set.scan(self.training_data,CRF_bat)
-			if first:	self.label_dic, self.label_array = self.feature_set.get_labels()
-			
-			self.num_labels = len(self.label_array)
+			self.training_data = self.CRF_bat.return_corpus()
 			print("* Number of labels: %d" % (self.num_labels-1))
 			print("* Number of features: %d" % len(self.feature_set))
 			self._estimate_parameters()
-			first = False		
-		self.save_model(model_filename,CRF_bat)
+		
+		self.save_model(model_filename)
 
 
 
@@ -370,7 +466,6 @@ class LinearChainCRF():
 			Yprime = self.inference(X)
 			for i in range(len(Yprime)):
 				Y_list.append((X[i],Yprime[i]))
-
 		return Y_list
 	
 
@@ -436,11 +531,8 @@ class LinearChainCRF():
 			sequence.append(next_label)
 		return [self.label_dic[label_id] for label_id in sequence[::-1][1:]]
 
-	def save_model(self, model_filename,CRF_bat=None):
-		if CRF_bat != None:
-			fea_dic = CRF_bat.feature_io.get_feature_from_file()
-		else:
-			fea_dic = self.feature_set.serialize_feature_dic()
+	def save_model(self, model_filename):
+		fea_dic = self.feature_set.serialize_feature_dic()
 		model = {"feature_dic": fea_dic,
 				 "num_features": self.feature_set.num_features,
 				 "labels": self.feature_set.label_array,

@@ -106,7 +106,7 @@ class feature_file:
 					features['feature_dic'][feature_string][value] = dict()
 					features['feature_dic'][feature_string][value] = feature_id
 				
-				self.result_write(features)	
+				self.result_write(features)
 		
 		except Exception as e:
 			result = dict()
