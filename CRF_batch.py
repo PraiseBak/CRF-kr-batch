@@ -13,8 +13,7 @@ class CRFBatch():
 		self.get_file_len(filename)
 		self.iteration = iteration
 		self.batch_size= int(self.dat_len/self.iteration)
-		self.feature_io = feature_file()
-
+	
 	def get_file_len(self,corpus_filename):
 		self.f = open(corpus_filename,'r',encoding = 'cp949')
 		while True:
@@ -26,6 +25,7 @@ class CRFBatch():
 
 	def set_file_curser_front(self):
 		self.f.seek(0)
+	
 
 	def return_corpus(self):
 		X = list()
@@ -58,8 +58,8 @@ class CRFBatch():
 		return data
 
 
-
-
+'''
+폐기
 class feature_file:
 	feature_fw = None
 	feature_fr = None
@@ -115,6 +115,11 @@ class feature_file:
 			result['feature_dic'][feature_string][value] = dict()
 			result['feature_dic'][feature_string][value] = feature_id
 			self.result_write(result)
+
+
+'''
+
+
 
 
 

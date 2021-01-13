@@ -26,6 +26,28 @@ def return_emjeol_list_from_file(filename):
 	word = return_word(content)
 	emjeol_list = return_emjeol(word)
 	return emjeol_list
+		
+def make_emjeol_file(sentense_filename):
+	f_length = 0
+	file_name = sentense_filename.split('.')[0]+'.gld'
+	with open(sentense_filename,'r',encoding='cp949') as fr:
+		with open(file_name,'w') as fw:
+			line = fr.readline()
+			result = list()
+			word_list = list()
+			while(line):
+				word_list = word_tokenize(line,'korean')
+				for word in word_list:
+					emjeol_list = syllable_tokenize(word,'korean')
+					for emjeol in emjeol_list:
+						fw.write(emjeol+'\n')
+						f_length+=1
+				fw.write('\n')
+				f_length+=1
+				line = fr.readline()
+	return file_name, f_length 		
+	
+
 
 def return_file_content(filename):
 	try:
@@ -39,13 +61,15 @@ def return_word(content):
 	word_list = list()
 	for line in content:
 		word_list.append(word_tokenize(line,'korean'))
+
 	return word_list
 
 
 def return_emjeol(word_list):
 	emjeol_list = list()
 	for word in word_list:
-		emjeol_list.append(syllable_tokenize(word,'korean'))
+		for i in word:
+			emjeol_list.append(syllable_tokenize(i,'korean'))
 	return emjeol_list
 
 
@@ -70,15 +94,29 @@ def return_converted_word_from_emjeol(Y):
 
 
 # CRF_lib로 빼자
-def write_inference_result(Y_list,filename):
-	write_inference_result
+def write_inference_result(Y_list,filename,iteration = None):
 	output_file = filename.split('.')[0]+'.result'
-	output_file = return_no_duplicated_filename(filename.split('.')[0]+'.result')
-	with open(output_file,'w') as f:
-		for line in Y_list:	
-			if line != '\n':
-				f.write(line+'\n')
-	print('result prediction file:',output_file)
+
+	if iteration == None:
+		with open(output_file,'w') as f:
+			for line in Y_list:	
+				if line != '\n':
+					f.write(line+'\n')
+				else:
+					f.write('\n')
+
+		print('result prediction file:',output_file)
+	else:
+		with open(output_file,'a') as f:
+			for line in Y_list:
+				if line != '\n':
+					f.write(line+'\n')
+				else:
+					f.write('\n')
+
+
+		return output_file				
+	
 
 
 

@@ -435,16 +435,23 @@ class LinearChainCRF():
 		iteration = int(iteration)
 		self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,iteration)
 		self.feature_set = FeatureSet()
+		
+		print("* Reading training data for make whole feature...\n ")
 		self.training_data = self._read_corpus(corpus_filename)
+		
+		print('Read training data complete')
 		self.feature_set.scan(self.training_data)
 		self.label_dic, self.label_array = self.feature_set.get_labels()
 		self.num_labels = len(self.label_array)
+		print("* Number of labels: %d" % (self.num_labels-1))
+		print("* Number of features: %d" % len(self.feature_set))
 
-		for iter in range(iteration):
-			self.training_data = self.CRF_bat.return_corpus()
-			print("* Number of labels: %d" % (self.num_labels-1))
-			print("* Number of features: %d" % len(self.feature_set))
-			self._estimate_parameters()
+		epoch = 10
+		for e in range(0,epoch):
+			self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,iteration)
+			for iter in range(iteration):
+				self.training_data = self.CRF_bat.return_corpus()
+				self._estimate_parameters()
 		
 		self.save_model(model_filename)
 
@@ -467,35 +474,77 @@ class LinearChainCRF():
 			for i in range(len(Yprime)):
 				Y_list.append((X[i],Yprime[i]))
 		return Y_list
-	
 
-	def inference_file(self, test_corpus_filename,model):
+
+	def inference_batch(self, test_corpus_filename,model,iteration):
+		iteration = int(iteration)
+		emjeol_file,file_len = utils.make_emjeol_file(test_corpus_filename)
+		with open((model+'emjeol').split('.')[0]+'.result','w') as f:
+			pass
+
+		with open(emjeol_file,'r') as f:
+			for i in range(iteration):
+				YY_list = list()
+				#배치사이즈마다 결과 출력 및 메모리초기화(YY_list=list())
+				X = list()
+				for count in range(0,int(file_len/iteration)):
+					line = f.readline()
+
+					while(line):
+						if line != "\n":
+							X.append(line.rstrip('\n'))
+						else:
+							#맨처음에 개행문자가 오는 경우 방지
+							if len(X) != 0:
+								Yprime = self.inference(X)
+								for j in range(len(Yprime)):
+									YY_list.append(X[j] + '\t' + Yprime[j])
+								YY_list.append('\n')
+								X = list()
+
+						line = f.readline()
+				file_name = utils.write_inference_result(YY_list ,model+'emjeol',iteration)
+			
+			print("pred file:",file_name)
+
+
+
+	def inference_file(self, test_corpus_filename,model,iteration=None):
 		self.load(model)
 		if self.params is None:
 			raise BaseException("You should load a model first!")
 		start_time = time.time()
 		emjeol_list = list()
-		emjeol_list = utils.return_emjeol_list_from_file(test_corpus_filename)
-		#마킹 + 음절+ 예측한 형태소
-		Y_list = list()
+		#Y_list = list()
 		YY_list = list()
-		for i in range(len(emjeol_list)):
-			for X in emjeol_list[i]:
-				Yprime = self.inference(X)
-				for j in range(len(Yprime)):
-					is_first = 0
-					if j == 0:
-						is_first = 1
-					Y_list.append(str(is_first) + '\t' + X[j] + '\t' +Yprime[j])
-					YY_list.append(X[j] + '\t' + Yprime[j])
+		
+		if iteration == None:	
+			emjeol_list = utils.return_emjeol_list_from_file(test_corpus_filename)
+		else:
+			iteration = int(iteration)
+			CRF_bat = CRF_batch.CRFBatch(test_corpus_filename,iteration) 
+			emjeol_file,file_len = utils.make_emjeol_file(test_corpus_filename)
+			
+		if iteration == None:
+			for i in range(len(emjeol_list)):
+				for X in emjeol_list[i]:
+					Yprime = self.inference(X)
+					for j in range(len(Yprime)):
+						#is_first = 0
+						#if j == 0:
+							#is_first = 1
+						#Y_list.append(str(is_first) + '\t' + X[j] + '\t' +Yprime[j])
+						YY_list.append(X[j] + '\t' + Yprime[j])
+			utils.write_inference_result(YY_list ,model+'emjeol')
 
-
-
+		else:
+			#리스트로 가지고 있지 않고 하나하나출력하는 방법
+			self.inference_batch(test_corpus_filename,model,iteration)
+			
 		#마킹기반 어절 + 예측한 형태소
 		#word_Y = utils.return_converted_word_from_emjeol(Y_list)
 		#model파일이름.result에 저장
 		#utils.write_inference_result(word_Y,model)
-		utils.write_inference_result(YY_list ,model+'emjeol')
 
 
 
@@ -577,5 +626,33 @@ class LinearChainCRF():
 		print('CRF model loaded')
 
 	
+
+"""
+백업
+	def inference_file(self, test_corpus_filename,model):
+		self.load(model)
+		if self.params is None:
+			raise BaseException("You should load a model first!")
+		start_time = time.time()
+		emjeol_list = list()
+		emjeol_list = utils.return_emjeol_list_from_file(test_corpus_filename)
+		#마킹 + 음절+ 예측한 형태소
+		Y_list = list()
+		YY_list = list()
+		for i in range(len(emjeol_list)):
+			for X in emjeol_list[i]:
+				Yprime = self.inference(X)
+				for j in range(len(Yprime)):
+					is_first = 0
+					if j == 0:
+						is_first = 1
+					Y_list.append(str(is_first) + '\t' + X[j] + '\t' +Yprime[j])
+					YY_list.append(X[j] + '\t' + Yprime[j])
+		#마킹기반 어절 + 예측한 형태소
+		#word_Y = utils.return_converted_word_from_emjeol(Y_list)
+		#model파일이름.result에 저장
+		#utils.write_inference_result(word_Y,model)
+		utils.write_inference_result(YY_list ,model+'emjeol')
+"""
 
 
