@@ -82,10 +82,7 @@ def _generate_potential_table(params, num_labels, feature_set, X, inference=True
 				else:
 					table[prev_y, y] += score
 		#한 음절마다
-		try:
-			table = np.exp(table)
-		except:
-			print("에러난 테이블*\n",table)
+		table = np.exp(table)
 			
 		if t == 0:
 			table[STARTING_LABEL_INDEX+1:] = 0
@@ -192,11 +189,10 @@ def _log_likelihood(params, *args):
 		potential_table = _generate_potential_table(params, len(label_dic), feature_set,
 													X_features, inference=False)
 	
-		#여기까지 문제없다고 판단한다
 		alpha, beta, Z, scaling_dic = _forward_backward(len(label_dic), len(X_features), potential_table)
 		
-		#맨마지막 alpha값 다 더한것 log취한거에 오버플로우 발생한 것들 더해줌 이 값은 지정한 값이라 일단 무시
-		#맨 마지막 행(문장의 제일 마지막 행일 모든 확률) + 오버플로우발생했을때 값들
+		#Z =(제일 마지막 X일때 모든 레이블 확률의 합)
+		#scaling_coef..= 오버플로우발생했을때 값들
 		#맨 마지막 행 그리고 오버플로우가 뭔가 의미가..
 	
 		total_logZ += log(Z) + \
@@ -216,11 +212,7 @@ def _log_likelihood(params, *args):
 					if t in scaling_dic.keys():
 						prob = (alpha[t, y] * beta[t, y] * scaling_dic[t])/Z
 					else:
-						try:
-							prob = (alpha[t, y] * beta[t, y])/Z
-						except:
-							print("응애입니다)\n",alpha[t, y], beta[t, y],Z)
-							print("\n**************************feture_ids:\n",feature_ids)
+						prob = (alpha[t, y] * beta[t, y])/Z
 							
 				elif t == 0:
 					if prev_y is not STARTING_LABEL_INDEX:
@@ -237,9 +229,6 @@ def _log_likelihood(params, *args):
 					expected_counts[fid] += prob
 					if prob < 0:
 						print(prob)
-
-
-
 
 
 
@@ -330,8 +319,9 @@ class LinearChainCRF():
 									self.feature_set.get_empirical_counts(),
 									self.label_dic, self.squared_sigma),
 							  maxiter=max_iter,
-							  
 							  callback=_callback)
+
+		
 		"""
 		print('   ========================')
 		print('   (iter: iteration, sit: sub iteration)')
@@ -382,9 +372,6 @@ class LinearChainCRF():
 		print('* [%s] Training done' % datetime.datetime.now())
 	
 	def train_batch(self, corpus_filename,model_filename,batch,epoch=None):
-
-
-		np.seterr(all='raise')
 		i = 0
 		batch = int(batch)
 		self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,batch)
@@ -395,6 +382,8 @@ class LinearChainCRF():
 		
 		print('* Read training data complete')
 		self.feature_set.scan(self.training_data)
+
+
 		self.label_dic, self.label_array = self.feature_set.get_labels()
 		self.num_labels = len(self.label_array)
 		print("* Number of labels: %d" % (self.num_labels-1))
@@ -618,8 +607,8 @@ class LinearChainCRF():
 
 if __name__ == '__main__':
 	crf = LinearChainCRF()
-	model = "./test_model.model"
-	test_corpus_filename = "./data/test3.txt"
+	model = "30000.model"
+	test_corpus_filename = "30000.dat"
 	import os
 	path = os.path.join(os.path.abspath(os.path.dirname(__file__)),test_corpus_filename)
-	crf.train(path,model)
+	crf.train(path,model,iteration=4)
