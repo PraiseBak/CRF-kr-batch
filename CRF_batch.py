@@ -15,7 +15,7 @@ class CRFBatch():
 		self.batch_size= int(self.dat_len/self.iteration)
 	
 	def get_file_len(self,corpus_filename):
-		self.f = open(corpus_filename,'r',encoding = 'cp949')
+		self.f = open(corpus_filename,'r')
 		while True:
 			line = self.f.readline()
 			if not line: 
@@ -39,6 +39,8 @@ class CRFBatch():
 			if not line: break
 			line = line.strip().split('\t')
 			if len(line) is 0 or len(line) is 1:
+				if len(X) == 0:
+					continue
 				data.append((X,Y))
 				X = list()
 				Y = list()

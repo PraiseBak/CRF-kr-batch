@@ -59,7 +59,10 @@ def _generate_potential_table(params, num_labels, feature_set, X, inference=True
 		(where 0 <= t < len(X))
 	"""
 	tables = list()
+	#X = 한문장
 	for t in range(len(X)):
+		#레이블 개수 x 레이블개수 행렬 생성
+
 		table = np.zeros((num_labels, num_labels))
 		if inference:
 			for (prev_y, y), score in feature_set.calc_inner_products(params, X, t):
@@ -70,13 +73,20 @@ def _generate_potential_table(params, num_labels, feature_set, X, inference=True
 					table[prev_y, y] += score
 
 		else:
+			#t번째 음절을 넣었을 때 나오는 feature_id에 해당하는  가중치를 모두 더해서
+			#테이블의 prev_y,y 이나 -1,y면 전체,y에 넣는다
 			for (prev_y, y), feature_ids in X[t]:
 				score = sum(params[fid] for fid in feature_ids)
 				if prev_y == -1:
 					table[:, y] += score
 				else:
 					table[prev_y, y] += score
-		table = np.exp(table)
+		#한 음절마다
+		try:
+			table = np.exp(table)
+		except:
+			print("에러난 테이블*\n",table)
+			
 		if t == 0:
 			table[STARTING_LABEL_INDEX+1:] = 0
 		else:
@@ -84,6 +94,7 @@ def _generate_potential_table(params, num_labels, feature_set, X, inference=True
 			table[STARTING_LABEL_INDEX,:] = 0
 
 		tables.append(table)
+	#tables는 tables[t번째][확률테이블] 확률 테이블은[prev_y,y] = 확률값 (그 음절이 나왔을때 생성된 모든 피쳐의 가중치더해진)
 	return tables
 
 
@@ -98,8 +109,8 @@ def _forward_backward(num_labels, time_length, potential_table):
 	alpha = np.zeros((time_length, num_labels))
 	scaling_dic = dict()
 	t = 0
+	
 	for label_id in range(num_labels):
-		#potential table 길이가 0	
 		alpha[t, label_id] = potential_table[t][STARTING_LABEL_INDEX, label_id]
 	#alpha[0, :] = potential_table[0][STARTING_LABEL_INDEX, :]  # slow
 	t = 1
@@ -108,24 +119,30 @@ def _forward_backward(num_labels, time_length, potential_table):
 		scaling_coefficient = None
 		overflow_occured = False
 		label_id = 1
+
+
 		while label_id < num_labels:
+			#현재 레이블이면서 현재 음절이 될 확률 = 이전 음절 나올 확률 * 현재 레이블일 확률 *
 			alpha[t, label_id] = np.dot(alpha[t-1,:], potential_table[t][:,label_id])
 			if alpha[t, label_id] > SCALING_THRESHOLD:
 				if overflow_occured:
 					print('******** Consecutive overflow ********')
 					raise BaseException()
-				overflow_occured = True
+				overflow_occured = True 
 				scaling_time = t - 1
 				scaling_coefficient = SCALING_THRESHOLD
 				scaling_dic[scaling_time] = scaling_coefficient
 				break
 			else:
 				label_id += 1
+
 		if overflow_occured:
 			alpha[t-1] /= scaling_coefficient
 			alpha[t] = 0
 		else:
 			t += 1
+
+
 
 	beta = np.zeros((time_length, num_labels))
 	t = time_length - 1
@@ -133,10 +150,13 @@ def _forward_backward(num_labels, time_length, potential_table):
 		beta[t, label_id] = 1.0
 	#beta[time_length - 1, :] = 1.0	 # slow
 	for t in range(time_length-2, -1,-1):
+		
 		for label_id in range(1, num_labels):
+			#현재 음절이면서 현재 레이블일 확률 = 다음 음절 나올 확률,
 			beta[t,label_id] = np.dot(beta[t+1,:],potential_table[t+1][label_id,:])
 		if t in scaling_dic.keys():
 			beta[t] /= scaling_dic[t]
+
 	Z = sum(alpha[time_length-1])
 	return alpha, beta, Z, scaling_dic
 
@@ -168,28 +188,40 @@ def _log_likelihood(params, *args):
 	i = 0
 	import time 
 	for	X_features in training_feature_data:
-
-		i+=1
+		#X_features = 한문장
 		potential_table = _generate_potential_table(params, len(label_dic), feature_set,
 													X_features, inference=False)
-
-		
-		i += 1
+	
+		#여기까지 문제없다고 판단한다
 		alpha, beta, Z, scaling_dic = _forward_backward(len(label_dic), len(X_features), potential_table)
+		
+		#맨마지막 alpha값 다 더한것 log취한거에 오버플로우 발생한 것들 더해줌 이 값은 지정한 값이라 일단 무시
+		#맨 마지막 행(문장의 제일 마지막 행일 모든 확률) + 오버플로우발생했을때 값들
+		#맨 마지막 행 그리고 오버플로우가 뭔가 의미가..
+	
 		total_logZ += log(Z) + \
 					  sum(log(scaling_coefficient) for _, scaling_coefficient in scaling_dic.items())
 
-		for t in range(len(X_features)): # 어절 loop
+		#t는 몇번째 음절인지.
+		for t in range(len(X_features)):
+			#0번째 음절의 확률 테이블 (y,y)크기에 prev_y,y = 확률 값
+
 			potential = potential_table[t]
 			for (prev_y, y), feature_ids in X_features[t]:
 				# Adds p(prev_y, y | X, t)
 				# print (prev_y)
 				# print (y)
 				if prev_y == -1:
+					#
 					if t in scaling_dic.keys():
 						prob = (alpha[t, y] * beta[t, y] * scaling_dic[t])/Z
 					else:
-						prob = (alpha[t, y] * beta[t, y])/Z
+						try:
+							prob = (alpha[t, y] * beta[t, y])/Z
+						except:
+							print("응애입니다)\n",alpha[t, y], beta[t, y],Z)
+							print("\n**************************feture_ids:\n",feature_ids)
+							
 				elif t == 0:
 					if prev_y is not STARTING_LABEL_INDEX:
 						continue
@@ -199,15 +231,22 @@ def _log_likelihood(params, *args):
 					if prev_y is STARTING_LABEL_INDEX or y is STARTING_LABEL_INDEX:
 						continue
 					else:
+						#이전 음절이면서 레이블 나올 확률 * prev_y,y가 나올 모든 확률 *현재
 						prob = (alpha[t-1, prev_y] * potential[prev_y, y] * beta[t, y]) / Z
 				for fid in feature_ids:
 					expected_counts[fid] += prob
 					if prob < 0:
 						print(prob)
+
+
+
+
+
+
 	likelihood = np.dot(empirical_counts, params) - total_logZ - \
 				 np.sum(np.dot(params,params))/(squared_sigma*2)
 	gradients = empirical_counts - expected_counts - params/squared_sigma
-
+	
 	global GRADIENT
 	GRADIENT = gradients
 
@@ -222,84 +261,6 @@ def _log_likelihood(params, *args):
 	return likelihood * -1
 
 
-
-
-
-
-
-
-
-
-
-
-#기존 배치 적용 전 log likelihood
-
-def _log_likelihood2(params, *args, CRF_bat=None):
-	"""
-	Calculate likelihood and gradient
-	"""
-	training_data, feature_set, training_feature_data, empirical_counts, label_dic, squared_sigma = args
-	expected_counts = np.zeros(len(feature_set))
-
-	total_logZ = 0
-
-	i = 0
-	import time
-
-
-	for X_features in training_feature_data:
-		i+=1
-		#이부분 삭제 할 것
-		potential_table = _generate_potential_table(params, len(label_dic), feature_set,
-													X_features, inference=False)
-
-		
-		i += 1
-		alpha, beta, Z, scaling_dic = _forward_backward(len(label_dic), len(X_features), potential_table)
-		total_logZ += log(Z) + \
-					  sum(log(scaling_coefficient) for _, scaling_coefficient in scaling_dic.items())
-
-		for t in range(len(X_features)): # 어절 loop
-			potential = potential_table[t]
-			for (prev_y, y), feature_ids in X_features[t]:
-				# Adds p(prev_y, y | X, t)
-				# print (prev_y)
-				# print (y)
-				if prev_y == -1:
-					if t in scaling_dic.keys():
-						prob = (alpha[t, y] * beta[t, y] * scaling_dic[t])/Z
-					else:
-						prob = (alpha[t, y] * beta[t, y])/Z
-				elif t == 0:
-					if prev_y is not STARTING_LABEL_INDEX:
-						continue
-					else:
-						prob = (potential[STARTING_LABEL_INDEX, y] * beta[t, y])/Z
-				else:
-					if prev_y is STARTING_LABEL_INDEX or y is STARTING_LABEL_INDEX:
-						continue
-					else:
-						prob = (alpha[t-1, prev_y] * potential[prev_y, y] * beta[t, y]) / Z
-				for fid in feature_ids:
-					expected_counts[fid] += prob
-					if prob < 0:
-						print(prob)
-	likelihood = np.dot(empirical_counts, params) - total_logZ - \
-				 np.sum(np.dot(params,params))/(squared_sigma*2)
-	gradients = empirical_counts - expected_counts - params/squared_sigma
-
-	global GRADIENT
-	GRADIENT = gradients
-
-	
-	global SUB_ITERATION_NUM
-	sub_iteration_str = '	'
-	if SUB_ITERATION_NUM > 0:
-		sub_iteration_str = '(' + '{0:02d}'.format(SUB_ITERATION_NUM) + ')'
-	print('  ', '{0:03d}'.format(ITERATION_NUM), sub_iteration_str, ':', likelihood * -1)
-
-	SUB_ITERATION_NUM += 1
-	return likelihood * -1
 
 
 def _gradient(params, *args):
@@ -317,7 +278,6 @@ class LinearChainCRF():
 	label_dic = None
 	label_array = None
 	num_labels = None
-
 	params = None
 
 	# For L-BFGS
@@ -330,26 +290,12 @@ class LinearChainCRF():
 		return read_conll_corpus(filename)
 	
 	
-	def _get_training_feature_data_for_batch(self):
-		result = list()
-		result2 = list()
-		for X, _ in self.training_data:
-			result = list()
-			for t in range(len(X)):
-				result.append(self.feature_set.get_feature_list(X, t))
-			result2.append(result)
-		return result2
-		
-
-
 	def _get_training_feature_data(self):
 		return [[self.feature_set.get_feature_list(X, t) for t in range(len(X))]
 				for X, _ in self.training_data]
-
-
 	
 
-	def _estimate_parameters(self):
+	def _estimate_parameters(self,max_iter=None):
 		"""
 		Estimates parameters using L-BFGS.
 		* References:
@@ -361,35 +307,38 @@ class LinearChainCRF():
 			- J.L. Morales and J. Nocedal. L-BFGS-B: Remark on Algorithm 778: L-BFGS-B, FORTRAN routines for
 			large scale bound constrained optimization (2011), ACM Transactions on Mathematical Software, 38, 1.
 		"""
-		if self.CRF_bat == None:
-			training_feature_data = self._get_training_feature_data()
-		else:
-			training_feature_data = self._get_training_feature_data_for_batch()
-
-		#utils.write_anyway(training_feature_data)
+		if max_iter == None:
+			max_iter = 5
 		
-		# 학습후피쳐
 
+		training_feature_data = self._get_training_feature_data()
+
+		"""
 		print('* Squared sigma:', self.squared_sigma)
 		print('* Start L-BGFS')
 		print('   ========================')
 		print('   iter(sit): likelihood')
-		print('   ------------------------')
+		print('   ------------------------')	
+		"""
+
 		iteration_start = time.time()
+		
 		self.params, log_likelihood, information = \
 				fmin_l_bfgs_b(func=_log_likelihood, fprime=_gradient,
-							  x0=np.zeros(len(self.feature_set)),
+							  x0=self.params,
 							  args=(self.training_data, self.feature_set, training_feature_data,
 									self.feature_set.get_empirical_counts(),
 									self.label_dic, self.squared_sigma),
-							  maxiter=1,
+							  maxiter=max_iter,
 							  
 							  callback=_callback)
+		"""
 		print('   ========================')
 		print('   (iter: iteration, sit: sub iteration)')
 		print('* Training has been finished with %d iterations' % information['nit'])
 		print("iteration ended time =",time.time() - iteration_start)
-
+		"""
+		
 		if information['warnflag'] != 0:
 			print('* Warning (code: %d)' % information['warnflag'])
 			if 'task' in information.keys():
@@ -411,7 +360,7 @@ class LinearChainCRF():
 			# Read the training corpus
 			print("* Reading training data ...\n ")
 			self.training_data = self._read_corpus(corpus_filename)
-			print('Read training data complete')
+			print('* Read training data complete')
 			# Generate feature set from the corpus
 			self.feature_set = FeatureSet()
 			self.feature_set.scan(self.training_data)
@@ -422,6 +371,7 @@ class LinearChainCRF():
 			print("* Number of features: %d" % len(self.feature_set))
 
 			# Estimates parameters to maximize log-likelihood of the corpus.
+			self.params = np.zeros(len(self.feature_set))
 			self._estimate_parameters()
 			self.save_model(model_filename)
 		else:
@@ -431,27 +381,36 @@ class LinearChainCRF():
 		print('*총 소요 시간 Elapsed time: %f' % elapsed_time)
 		print('* [%s] Training done' % datetime.datetime.now())
 	
-	def train_batch(self, corpus_filename,model_filename,iteration):
-		iteration = int(iteration)
-		self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,iteration)
+	def train_batch(self, corpus_filename,model_filename,batch,epoch=None):
+
+
+		np.seterr(all='raise')
+		i = 0
+		batch = int(batch)
+		self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,batch)
 		self.feature_set = FeatureSet()
-		
+
 		print("* Reading training data for make whole feature...\n ")
 		self.training_data = self._read_corpus(corpus_filename)
 		
-		print('Read training data complete')
+		print('* Read training data complete')
 		self.feature_set.scan(self.training_data)
 		self.label_dic, self.label_array = self.feature_set.get_labels()
 		self.num_labels = len(self.label_array)
 		print("* Number of labels: %d" % (self.num_labels-1))
 		print("* Number of features: %d" % len(self.feature_set))
-
-		epoch = 10
+		self.params = np.zeros(len(self.feature_set))
+		if epoch == None:
+			epoch = 5
+		
 		for e in range(0,epoch):
-			self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,iteration)
-			for iter in range(iteration):
+			print("current epoch: %d of %d" %(e+1,epoch))
+
+			self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,batch)
+			for bat in range(batch):
+				print("batch %d of %d" %(bat+1,batch))
 				self.training_data = self.CRF_bat.return_corpus()
-				self._estimate_parameters()
+				self._estimate_parameters(max_iter=1)
 		
 		self.save_model(model_filename)
 
@@ -656,3 +615,11 @@ class LinearChainCRF():
 """
 
 
+
+if __name__ == '__main__':
+	crf = LinearChainCRF()
+	model = "./test_model.model"
+	test_corpus_filename = "./data/test3.txt"
+	import os
+	path = os.path.join(os.path.abspath(os.path.dirname(__file__)),test_corpus_filename)
+	crf.train(path,model)

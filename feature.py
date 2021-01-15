@@ -19,7 +19,10 @@ def feature_setting(_, X, t):
 	:return: A list of feature strings
 	"""
 	length = len(X)
-	f = open('template','r',-1,'utf-8')
+
+	import os
+	path = os.path.join(os.path.abspath(os.path.dirname(__file__)),'template')
+	f = open(path,'r',-1,'utf-8')
 	f.readline()
 
 	line = f.readlines()

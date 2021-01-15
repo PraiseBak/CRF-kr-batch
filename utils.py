@@ -67,9 +67,13 @@ def return_word(content):
 
 def return_emjeol(word_list):
 	emjeol_list = list()
+	word_sentense_unit_list = list()
+	word_sentense = ""
 	for word in word_list:
+		word_sentense =""
 		for i in word:
-			emjeol_list.append(syllable_tokenize(i,'korean'))
+			word_sentense += i
+		emjeol_list.append(syllable_tokenize(word_sentense,'korean'))
 	return emjeol_list
 
 
@@ -190,17 +194,6 @@ def emjeol_to_sentense(filename):
 
 
 
-def debug_params_write(params):
-	#if params.tolist()[0] > 0:
-		#input("input to write")
-
-	with open("params.debug",'w') as f:
-		for i in params.tolist():
-			f.write(str(i)+'\n')
-
-
-
-
 def write_anyway(thing):
 	"""
 	training_feature_data
@@ -234,24 +227,6 @@ def write_anyway(thing):
 
 			
 			f.write('\n')
-
-def ining_feature_data_for_batch(self):
-	result = list()
-	result2 = list()
-	for X, _ in self.training_data:
-		result = list()
-		for t in range(len(X)):
-			result.append(self.feature_set.get_feature_list(X, t)) 
-		result2.append(result)
-	return result2
-
-
-
-def _get_training_feature_data(self):
-	return [[self.feature_set.get_feature_list(X, t) for t in range(len(X))]
-			for X, _ in self.training_data]
-
-
 
 
 
