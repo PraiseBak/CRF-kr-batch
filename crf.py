@@ -178,6 +178,7 @@ def _log_likelihood(params, *args):
 	"""
 	Calculate likelihood and gradient
 	"""
+
 	training_data, feature_set, training_feature_data, empirical_counts, label_dic, squared_sigma = args
 	expected_counts = np.zeros(len(feature_set))
 	total_logZ = 0
@@ -611,4 +612,4 @@ if __name__ == '__main__':
 	test_corpus_filename = "30000.dat"
 	import os
 	path = os.path.join(os.path.abspath(os.path.dirname(__file__)),test_corpus_filename)
-	crf.train(path,model,iteration=4)
+	crf.train(path,model,iteration=2)
