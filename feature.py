@@ -77,6 +77,7 @@ class FeatureSet():
 	label_array = [STARTING_LABEL]
 	#feature_func = default_feature_func
 	feature_func = feature_setting
+	
 	def _init(self):
 		feature_dic = dict()
 		bservation_set = set()
@@ -95,7 +96,24 @@ class FeatureSet():
 		if feature_func is not None:
 			self.feature_func = feature_func
 
-	def scan(self, data):
+
+	def empirical_init(self):
+		emp_length = len(self.empirical_counts)
+		for i in range(emp_length):
+			self.empirical_counts[i] = 0
+	
+
+	def	empirical_recount(self, prev_y, y, X, t):
+		for feature_string in self.feature_func(X, t):
+			key = feature_string[0]
+			if key != 'U':
+				feature_id = self.feature_dic[feature_string][(prev_y,y)]
+				self.empirical_counts[feature_id] += 1
+			else:
+				feature_id = self.feature_dic[feature_string][(-1,y)]
+				self.empirical_counts[feature_id] += 1
+
+	def scan(self, data,batch=False):
 		"""
 		Constructs a feature set, a label set,
 			and a counter of empirical counts of each feature from the input data.
@@ -103,10 +121,10 @@ class FeatureSet():
 		"""
 		# Constructs a feature set, and counts empirical counts.]
 		idx = 0
+		if batch:self.empirical_init()
 		for X, Y in data:
 			prev_y = STARTING_LABEL_INDEX
 			for t in range(len(X)):
-				#print(len(X))
 				# Gets a label id
 				try:
 					y = self.label_dic[Y[t]]
@@ -115,11 +133,10 @@ class FeatureSet():
 					self.label_dic[Y[t]] = y
 					self.label_array.append(Y[t])
 				# Adds features
-				self._add(prev_y, y, X, t)
+				if batch:self.empirical_recount(prev_y,y,X,t)
+				else:self._add(prev_y, y, X, t)
 				prev_y = y
-			idx += 1
-			#if idx % 1000 == 0 and idx != 0:
-				#print("*********",idx,"번째 피쳐생성중",len(data) - idx,'개 left.')
+
 
 
 	def load(self, feature_dic, num_features, label_array):
@@ -131,16 +148,16 @@ class FeatureSet():
 	def __len__(self):
 		return self.num_features
 	
-	"""
-	def adding_features_file_and_dict(self,feature_string,prev_y,y,feature_id):
+	def adding_features_into_dict(self,feature_string,prev_y,y):
 		feature_id = self.num_features
 		self.feature_dic[feature_string][(prev_y, y)] = feature_id
-		if CRF_bat is not None:
-			CRF_bat.feature_io.write_feature_into_file(feature_string,prev_y,y,feature_id)
+		#if CRF_bat is not None:
+			#CRF_bat.feature_io.write_feature_into_file(feature_string,prev_y,y,feature_id)
 		self.empirical_counts[feature_id] += 1
 		self.num_features += 1
-	"""
-
+	
+		
+	
 
 	#code refactoring
 	def _add(self, prev_y, y, X, t,CRF_bat=None):
@@ -156,6 +173,7 @@ class FeatureSet():
 			#print("피쳐 스트링=",feature_string)
 			#현재 단어가 피쳐 딕셔너리 키에 있다
 			key = feature_string[0]
+
 			if feature_string in self.feature_dic.keys():
 				if key != 'U':
 					#현재 단어의 prev y 랑 y가 이미 딕셔너리 피쳐에 있다
@@ -163,83 +181,25 @@ class FeatureSet():
 						self.empirical_counts[self.feature_dic[feature_string][(prev_y, y)]] += 1
 					else:
 						#없으면 prev y랑 y 피쳘 딕셔너리에 추가
-						self.adding_features_file_and_dict(feature_string,prev_y,y,feature_id)
+						self.adding_features_into_dict(feature_string,prev_y,y)
 
 				#prev y랑 y 가 -1,y 가여도 피쳐 딕셔너리에 이미 있으면 임페리컬 카운트 증가
 				else:
 					if (-1, y) in self.feature_dic[feature_string].keys():
 						self.empirical_counts[self.feature_dic[feature_string][(-1, y)]] += 1
 					else:
-						self.adding_features_file_and_dict(feature_string,-1,y,feature_id)
-			
+						self.adding_features_into_dict(feature_string,-1,y)
 			else:
 				# 현재 피쳐 스트링이 피쳐 딕셔너리에 없다 (처음 나왔다)
 				self.feature_dic[feature_string] = dict()
 				#prev y , y추가
 				if key != 'U':
-					self.adding_features_file_and_dict(feature_string,-1,y,feature_id)
+					self.adding_features_into_dict(feature_string,prev_y,y)
 				else:
-					self.adding_features_file_and_dict(feature_string,-1,y,feature_id)
+					self.adding_features_into_dict(feature_string,-1,y)
 	
 
-
-
-	#original code (parameter CRF_bat is added) 
-	def _add(self, prev_y, y, X, t):
-		"""
-		Generates features, constructs feature_dic.
-		:param prev_y: previous label
-		:param y: present label
-		:param X: observation vector
-		:param t: time
-		"""
-
-		for feature_string in self.feature_func(X, t):
-			#print("피쳐 스트링=",feature_string)
-			#현재 단어가 피쳐 딕셔너리 키에 있다
-			key = feature_string[0]
-			if feature_string in self.feature_dic.keys():
-				if key != 'U':
-					#현재 단어의 prev y 랑 y가 이미 딕셔너리 피쳐에 있다
-					if (prev_y, y) in self.feature_dic[feature_string].keys():
-						self.empirical_counts[self.feature_dic[feature_string][(prev_y, y)]] += 1
-					else:
-						#없으면 prev y랑 y 피쳘 딕셔너리에 추가
-						feature_id = self.num_features
-						#TODO 이런식으로 구현
-						self.feature_dic[feature_string][(prev_y, y)] = feature_id
-						self.empirical_counts[feature_id] += 1
-						self.num_features += 1
-
-				#prev y랑 y 가 -1,y 가여도 피쳐 딕셔너리에 이미 있으면 임페리컬 카운트 증가
-				else:
-
-					if (-1, y) in self.feature_dic[feature_string].keys():
-						self.empirical_counts[self.feature_dic[feature_string][(-1, y)]] += 1
-					else:
-						feature_id = self.num_features
-						self.feature_dic[feature_string][(-1, y)] = feature_id
-						self.empirical_counts[feature_id] += 1
-						self.num_features += 1
-			else:
-				# 현재 피쳐 스트링이 피쳐 딕셔너리에 없다 (처음 나왔다)
-				self.feature_dic[feature_string] = dict()
-				feature_id = self.num_features
-				#prev y , y추가
-
-				if key != 'U':
-					self.feature_dic[feature_string][(prev_y, y)] = feature_id
-					self.empirical_counts[feature_id] += 1
-					self.num_features += 1
-					feature_id = self.num_features
-				# -1, y 추가
-				else:
-					
-					self.feature_dic[feature_string][(-1, y)] = feature_id
-					self.empirical_counts[feature_id] += 1
-					self.num_features += 1
-					
-						
+							
 
 	def get_feature_vector(self, prev_y, y, X, t):
 		"""

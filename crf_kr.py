@@ -41,40 +41,33 @@ def test(anwser_file, input_file):
 
 
 if __name__ == '__main__':
-	usage = "sentense inference mode: crf_kr.py modelfile\n"
-	usage_2 = "file inference mode: crf_kr.py test_file model -m=inference\n"
-	usage_3 = "train mode : crf_kr.py -i=train_file model -m=train -b=4\n"
-	usage_4 = "test mode : crf_kr.py input_file -a=anwser_file -m=test -b=4\nnow batch is  executable!"
-	parser = argparse.ArgumentParser(usage='\n' + usage + usage_2 + usage_3 + usage_4)
+	usage_0 = "mode -i=inputfile -m=mode -e=epoch -b=batch\n"
+	usage_1 = "sentense inference mode: crf_kr.py modelfile\n"
+	usage_2 = "file inference mode: crf_kr.py -i=test_file model -m=inference\n"
+	usage_3 = "train mode : crf_kr.py -i=train_file model -m=train -b=4 -e=4\n"
+	usage_4 = "test mode : crf_kr.py -i=input_file -a=anwser_file -m=test -b=4"
+	parser = argparse.ArgumentParser(usage_0 + usage_1 + usage_2 + usage_3 + usage_4)
 	parser.add_argument("--input", '-i')
 	parser.add_argument("model")
 	parser.add_argument("--anwserfile", '-a')
 	parser.add_argument("--mode", '-m')
 	parser.add_argument("--batch", '-b')
+	parser.add_argument("--epoch", '-e')
 	args = parser.parse_args()
 	len_args = count_args(args)
-
 	crf = LinearChainCRF()
 
 	if len_args == 1:
 		print(crf.inference_sentense(args.model))
 
-	elif len_args == 3 or len_args == 4 or len_args == 5:
+	elif len_args >= 3 and len_args <= 7:
 		if args.mode == "train":
-			if args.batch != None:
-				crf.train(args.input, args.model, args.batch)
-			else:
-				crf.train(args.input, args.model, args.batch)
+			crf.train(args.input, args.model, batch=args.batch,epoch=args.epoch)
 		elif args.mode == "inference":
-			if args.batch != None:
-				crf.inference_file(args.input, args.model, args.batch)
-			else:
-				crf.inference_file(args.input, args.model)
+			crf.inference_file(args.input, args.model, batch=args.batch)
 		elif args.mode == "test":
 			test(args.input_file, args.anwser_file)
 		else:
 			print("wrong args input")
-
-
 	else:
 		print("wrong args input")

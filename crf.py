@@ -40,7 +40,7 @@ ITERATION_NUM = 0
 SUB_ITERATION_NUM = 0
 TOTAL_SUB_ITERATIONS = 0
 GRADIENT = None
-
+is_batch = False
 
 def _callback(params):
 	global ITERATION_NUM
@@ -178,7 +178,7 @@ def _log_likelihood(params, *args):
 	"""
 	Calculate likelihood and gradient
 	"""
-
+	global is_batch
 	training_data, feature_set, training_feature_data, empirical_counts, label_dic, squared_sigma = args
 	expected_counts = np.zeros(len(feature_set))
 	total_logZ = 0
@@ -243,10 +243,20 @@ def _log_likelihood(params, *args):
 	
 	global SUB_ITERATION_NUM
 	sub_iteration_str = '	'
-	if SUB_ITERATION_NUM > 0:
+	if SUB_ITERATION_NUM >= 0:
 		sub_iteration_str = '(' + '{0:02d}'.format(SUB_ITERATION_NUM) + ')'
-	print('  ', '{0:03d}'.format(ITERATION_NUM), sub_iteration_str, ':', likelihood * -1)
+	
+	#if print('  ', '{0:03d}'.format(ITERATION_NUM), sub_iteration_str, ':', likelihood * -1)
+	
+	print('\n({0:03d})번째 배치 likelihood'.format(ITERATION_NUM+1),sub_iteration_str,'번째 sub iteration', ':', likelihood * -1)
 
+	
+	result = 0
+	for i in range(len(gradients)):
+		result += gradients[i]
+	
+	print( '    gradients:', result/len(gradients))
+		
 	SUB_ITERATION_NUM += 1
 	return likelihood * -1
 
@@ -299,7 +309,11 @@ class LinearChainCRF():
 		"""
 		if max_iter == None:
 			max_iter = 5
-		
+			print('* Squared sigma:', self.squared_sigma)
+			print('* Start L-BGFS')
+			print('   ========================')
+			print('   iter(sit): likelihood')
+			print('   ------------------------')	
 
 		training_feature_data = self._get_training_feature_data()
 
@@ -330,26 +344,25 @@ class LinearChainCRF():
 		print("iteration ended time =",time.time() - iteration_start)
 		"""
 		
-		if information['warnflag'] != 0:
-			print('* Warning (code: %d)' % information['warnflag'])
-			if 'task' in information.keys():
-				print('* Reason: %s' % (information['task']))
-		print('* Likelihood: %s' % str(log_likelihood))
+		#if information['warnflag'] != 0:
+			#print('\n* Warning (code: %d)' % information['warnflag'])
+			#if 'task' in information.keys():
+				#print('* Reason: %s' % (information['task']))
+		#print('* Likelihood: %s' % str(log_likelihood))
 
 		
 	#without batch
-	def train(self, corpus_filename, model_filename,iteration = None):
+	def train(self, corpus_filename, model_filename,batch=None,epoch=None):
 		"""
 		Estimates parameters using conjugate gradient methods.(L-BFGS-B used)
 		"""
 		
 		start_time = time.time()
 		print('[%s] Start training' % datetime.datetime.now())
-
-		if iteration == None:
+		if batch == None:
 			
 			# Read the training corpus
-			print("* Reading training data ...\n ")
+			print("* Reading training data ...")
 			self.training_data = self._read_corpus(corpus_filename)
 			print('* Read training data complete')
 			# Generate feature set from the corpus
@@ -365,43 +378,48 @@ class LinearChainCRF():
 			self.params = np.zeros(len(self.feature_set))
 			self._estimate_parameters()
 			self.save_model(model_filename)
+
 		else:
-			self.train_batch(corpus_filename,model_filename,iteration)
+			self.train_batch(corpus_filename,model_filename,batch=batch,epoch=epoch)
 		
 		elapsed_time = time.time() - start_time
-		print('*총 소요 시간 Elapsed time: %f' % elapsed_time)
+		print('* 총 소요 시간 Elapsed time: %f' % elapsed_time)
 		print('* [%s] Training done' % datetime.datetime.now())
 	
-	def train_batch(self, corpus_filename,model_filename,batch,epoch=None):
+	def train_batch(self, corpus_filename,model_filename,batch=None,epoch=None):
+		global is_batch
 		i = 0
+		is_batch = True
+		
 		batch = int(batch)
+		epoch = int(epoch)
 		self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,batch)
 		self.feature_set = FeatureSet()
-
-		print("* Reading training data for make whole feature...\n ")
+		print("* Reading training data for make whole feature...")
 		self.training_data = self._read_corpus(corpus_filename)
-		
 		print('* Read training data complete')
 		self.feature_set.scan(self.training_data)
-
 
 		self.label_dic, self.label_array = self.feature_set.get_labels()
 		self.num_labels = len(self.label_array)
 		print("* Number of labels: %d" % (self.num_labels-1))
 		print("* Number of features: %d" % len(self.feature_set))
 		self.params = np.zeros(len(self.feature_set))
+
 		if epoch == None:
-			epoch = 5
+			epoch = 2
 		
 		for e in range(0,epoch):
-			print("current epoch: %d of %d" %(e+1,epoch))
-
+			print("\n* current epoch: %d of %d" %(e+1,epoch))
 			self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,batch)
 			for bat in range(batch):
+				if bat != 0:
+					print("")
 				print("batch %d of %d" %(bat+1,batch))
 				self.training_data = self.CRF_bat.return_corpus()
+				self.feature_set.scan(self.training_data,batch=True)
 				self._estimate_parameters(max_iter=1)
-		
+
 		self.save_model(model_filename)
 
 
@@ -425,14 +443,14 @@ class LinearChainCRF():
 		return Y_list
 
 
-	def inference_batch(self, test_corpus_filename,model,iteration):
-		iteration = int(iteration)
+	def inference_batch(self, test_corpus_filename,model,batch=None):
+		batch = int(batch)
 		emjeol_file,file_len = utils.make_emjeol_file(test_corpus_filename)
 		with open((model+'emjeol').split('.')[0]+'.result','w') as f:
 			pass
 
 		with open(emjeol_file,'r') as f:
-			for i in range(iteration):
+			for i in range(batch):
 				YY_list = list()
 				#배치사이즈마다 결과 출력 및 메모리초기화(YY_list=list())
 				X = list()
@@ -458,7 +476,7 @@ class LinearChainCRF():
 
 
 
-	def inference_file(self, test_corpus_filename,model,iteration=None):
+	def inference_file(self, test_corpus_filename,model,batch=None):
 		self.load(model)
 		if self.params is None:
 			raise BaseException("You should load a model first!")
@@ -467,14 +485,14 @@ class LinearChainCRF():
 		#Y_list = list()
 		YY_list = list()
 		
-		if iteration == None:	
+		if batch == None:	
 			emjeol_list = utils.return_emjeol_list_from_file(test_corpus_filename)
 		else:
-			iteration = int(iteration)
-			CRF_bat = CRF_batch.CRFBatch(test_corpus_filename,iteration) 
+			batch = int(batch)
+			CRF_bat = CRF_batch.CRFBatch(test_corpus_filename,batch) 
 			emjeol_file,file_len = utils.make_emjeol_file(test_corpus_filename)
 			
-		if iteration == None:
+		if batch == None:
 			for i in range(len(emjeol_list)):
 				for X in emjeol_list[i]:
 					Yprime = self.inference(X)
@@ -488,7 +506,7 @@ class LinearChainCRF():
 
 		else:
 			#리스트로 가지고 있지 않고 하나하나출력하는 방법
-			self.inference_batch(test_corpus_filename,model,iteration)
+			self.inference_batch(test_corpus_filename,model,batch=batch )
 			
 		#마킹기반 어절 + 예측한 형태소
 		#word_Y = utils.return_converted_word_from_emjeol(Y_list)
