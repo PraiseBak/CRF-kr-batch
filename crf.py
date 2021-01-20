@@ -190,15 +190,15 @@ def _log_likelihood(params, *args):
 	if SUB_ITERATION_NUM == 0 and is_batch:
 		data, is_end = crf.CRF_bat.return_corpus()
 		if is_end:
+			print('첫번째 배치로 돌아옴')
 			crf.CRF_bat.set_file_curser_front()
-			crf.feature_set.scan(data,batch=True)
-		train_data = None
+		crf.feature_set.scan(data,batch=True)
 		training_feature_data = crf._get_training_feature_data(data)
 		train_data = training_feature_data
 	elif is_batch:
 		training_feature_data = train_data
 
-	empirical_counts = crf.empirical_counts
+	empirical_counts = crf.feature_set.get_empirical_counts()
 	i = 0
 	import time
 	
@@ -308,7 +308,7 @@ class LinearChainCRF():
 
 	def _read_corpus(self, filename):
 		return read_conll_corpus(filename)
-	
+
 	
 	def _get_training_feature_data(self,data=None):
 		if data == None:
@@ -352,7 +352,6 @@ class LinearChainCRF():
 		print('   iter(sit): likelihood')
 		print('   ------------------------')	
 		"""
-
 		iteration_start = time.time()
 		self.params, log_likelihood, information = \
 				fmin_l_bfgs_b(func=_log_likelihood, fprime=_gradient,
@@ -372,11 +371,11 @@ class LinearChainCRF():
 		print("iteration ended time =",time.time() - iteration_start)
 		"""
 		
-		#if information['warnflag'] != 0:
-			#print('\n* Warning (code: %d)' % information['warnflag'])
-			#if 'task' in information.keys():
-				#print('* Reason: %s' % (information['task']))
-		#print('* Likelihood: %s' % str(log_likelihood))
+		if information['warnflag'] != 0:
+			print('\n* Warning (code: %d)' % information['warnflag'])
+			if 'task' in information.keys():
+				print('* Reason: %s' % (information['task']))
+		print('* Likelihood: %s' % str(log_likelihood))
 
 		
 	#without batch
@@ -641,11 +640,10 @@ class LinearChainCRF():
 
 if __name__ == '__main__':
 	crf = LinearChainCRF()
-	model = "delete.model"
-	model2 = "delete2.model"
+	model = "indelete.model"
 	test_corpus_filename = "1000.dat"
 
 	import os
 	path = os.path.join(os.path.abspath(os.path.dirname(__file__)),test_corpus_filename)
 	#crf.train(path,model2,epoch=2)
-	crf.train(path, model, batch=2,epoch=2)
+	crf.train(path, model, batch=3,epoch=15)
