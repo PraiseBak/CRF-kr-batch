@@ -3,7 +3,7 @@
 
 """
 Laon-CRF
-	: Easy-to-use Linear Chain Conditional Random Fields
+	: Easy-to7-use Linear Chain Conditional Random Fields
 
 Author: Seong-Jin Kim
 License: MIT License
@@ -41,6 +41,8 @@ SUB_ITERATION_NUM = 0
 TOTAL_SUB_ITERATIONS = 0
 GRADIENT = None
 is_batch = False
+train_data = None
+
 
 def _callback(params):
 	global ITERATION_NUM
@@ -179,12 +181,27 @@ def _log_likelihood(params, *args):
 	Calculate likelihood and gradient
 	"""
 	global is_batch
-	training_data, feature_set, training_feature_data, empirical_counts, label_dic, squared_sigma = args
+	global SUB_ITERATION_NUM
+	global train_data
+	training_data, feature_set, training_feature_data, empirical_counts, label_dic, squared_sigma, crf = args
 	expected_counts = np.zeros(len(feature_set))
 	total_logZ = 0
 
+
+	if SUB_ITERATION_NUM == 0 and is_batch:
+		global feature_data
+		data, is_end = crf.CRF_bat.return_corpus()
+		if is_end:
+			crf.CRF_bat.set_file_curser_front()
+			crf.feature_set.scan(data,batch=True)
+		train_data = None
+		training_feature_data = crf._get_training_feature_data(data)
+		train_data = training_feature_data
+	elif is_batch:
+		training_feature_data = train_data
+
 	i = 0
-	import time 
+	import time
 	for	X_features in training_feature_data:
 		#X_features = 한문장
 		potential_table = _generate_potential_table(params, len(label_dic), feature_set,
@@ -241,14 +258,17 @@ def _log_likelihood(params, *args):
 	GRADIENT = gradients
 
 	
-	global SUB_ITERATION_NUM
+
 	sub_iteration_str = '	'
 	if SUB_ITERATION_NUM >= 0:
 		sub_iteration_str = '(' + '{0:02d}'.format(SUB_ITERATION_NUM) + ')'
 	
 	#if print('  ', '{0:03d}'.format(ITERATION_NUM), sub_iteration_str, ':', likelihood * -1)
-	
-	print('\n({0:03d})번째 배치 likelihood'.format(ITERATION_NUM+1),sub_iteration_str,'번째 sub iteration', ':', likelihood * -1)
+	if is_batch:
+		print_str = "번째 배치"
+	else:
+		print_str = "번째 iteration"
+	print('\n({0:03d})'.format(ITERATION_NUM+1),'번째 %s' %(print_str),sub_iteration_str,'번째 sub iteration', ':', likelihood * -1)
 
 	
 	result = 0
@@ -290,9 +310,11 @@ class LinearChainCRF():
 		return read_conll_corpus(filename)
 	
 	
-	def _get_training_feature_data(self):
+	def _get_training_feature_data(self,data=None):
+		if data == None:
+			data = self.training_data
 		return [[self.feature_set.get_feature_list(X, t) for t in range(len(X))]
-				for X, _ in self.training_data]
+				for X, _ in data]
 	
 
 	def _estimate_parameters(self,max_iter=None):
@@ -307,15 +329,21 @@ class LinearChainCRF():
 			- J.L. Morales and J. Nocedal. L-BFGS-B: Remark on Algorithm 778: L-BFGS-B, FORTRAN routines for
 			large scale bound constrained optimization (2011), ACM Transactions on Mathematical Software, 38, 1.
 		"""
-		if max_iter == None:
-			max_iter = 5
+		global is_batch
+
+		training_feature_data = None
+		
+		if max_iter == None:max_iter = 5
+
+		if is_batch:
+			self.training_data = None
+		else:
 			print('* Squared sigma:', self.squared_sigma)
 			print('* Start L-BGFS')
 			print('   ========================')
 			print('   iter(sit): likelihood')
-			print('   ------------------------')	
-
-		training_feature_data = self._get_training_feature_data()
+			print('   ------------------------')
+			training_feature_data = self._get_training_feature_data()
 
 		"""
 		print('* Squared sigma:', self.squared_sigma)
@@ -326,15 +354,15 @@ class LinearChainCRF():
 		"""
 
 		iteration_start = time.time()
-		
 		self.params, log_likelihood, information = \
 				fmin_l_bfgs_b(func=_log_likelihood, fprime=_gradient,
 							  x0=self.params,
-							  args=(self.training_data, self.feature_set, training_feature_data,
+								args=(self.training_data, self.feature_set, training_feature_data,
 									self.feature_set.get_empirical_counts(),
-									self.label_dic, self.squared_sigma),
-							  maxiter=max_iter,
-							  callback=_callback)
+									self.label_dic, self.squared_sigma,self),
+								maxiter=max_iter,
+								callback=_callback)
+
 
 		
 		"""
@@ -376,7 +404,7 @@ class LinearChainCRF():
 
 			# Estimates parameters to maximize log-likelihood of the corpus.
 			self.params = np.zeros(len(self.feature_set))
-			self._estimate_parameters()
+			self._estimate_parameters(max_iter=epoch)
 			self.save_model(model_filename)
 
 		else:
@@ -388,9 +416,10 @@ class LinearChainCRF():
 	
 	def train_batch(self, corpus_filename,model_filename,batch=None,epoch=None):
 		global is_batch
-		i = 0
 		is_batch = True
-		
+		i = 0
+		if epoch == None:
+			epoch = 2
 		batch = int(batch)
 		epoch = int(epoch)
 		self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,batch)
@@ -405,21 +434,7 @@ class LinearChainCRF():
 		print("* Number of labels: %d" % (self.num_labels-1))
 		print("* Number of features: %d" % len(self.feature_set))
 		self.params = np.zeros(len(self.feature_set))
-
-		if epoch == None:
-			epoch = 2
-		
-		for e in range(0,epoch):
-			print("\n* current epoch: %d of %d" %(e+1,epoch))
-			self.CRF_bat = CRF_batch.CRFBatch(corpus_filename,batch)
-			for bat in range(batch):
-				if bat != 0:
-					print("")
-				print("batch %d of %d" %(bat+1,batch))
-				self.training_data = self.CRF_bat.return_corpus()
-				self.feature_set.scan(self.training_data,batch=True)
-				self._estimate_parameters(max_iter=1)
-
+		self._estimate_parameters(max_iter=epoch * batch)
 		self.save_model(model_filename)
 
 
@@ -626,8 +641,11 @@ class LinearChainCRF():
 
 if __name__ == '__main__':
 	crf = LinearChainCRF()
-	model = "30000.model"
-	test_corpus_filename = "30000.dat"
+	model = "delete.model"
+	model2 = "delete2.model"
+	test_corpus_filename = "1000.dat"
+
 	import os
 	path = os.path.join(os.path.abspath(os.path.dirname(__file__)),test_corpus_filename)
-	crf.train(path,model,iteration=2)
+	#crf.train(path,model2,epoch=2)
+	crf.train(path, model, batch=2,epoch=2)

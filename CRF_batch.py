@@ -15,28 +15,30 @@ class CRFBatch():
 		self.batch_size= int(self.dat_len/self.iteration)
 	
 	def get_file_len(self,corpus_filename):
-		self.f = open(corpus_filename,'r')
+		self.f = open(corpus_filename,'r',encoding='utf-8')
 		while True:
 			line = self.f.readline()
-			if not line: 
+			if not line:
 				self.set_file_curser_front()
 				break
 			self.dat_len += 1
 
+
 	def set_file_curser_front(self):
 		self.f.seek(0)
 	
-
 	def return_corpus(self):
 		X = list()
 		Y = list()
 		data = list()
 		element_size = 0
-		
+		is_end_batch = False
 		idx = 0
 		while True:
 			line = self.f.readline()
-			if not line: break
+			if not line:
+				is_end_batch = True
+				break
 			line = line.strip().split('\t')
 			if len(line) is 0 or len(line) is 1:
 				if len(X) == 0:
@@ -57,7 +59,7 @@ class CRFBatch():
 			idx += 1
 		if len(X) > 0:
 			data.append((X,Y))
-		return data
+		return data,is_end_batch
 
 
 '''

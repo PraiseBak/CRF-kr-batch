@@ -43,9 +43,9 @@ def test(anwser_file, input_file):
 if __name__ == '__main__':
 	usage_0 = "mode -i=inputfile -m=mode -e=epoch -b=batch\n"
 	usage_1 = "sentense inference mode: crf_kr.py modelfile\n"
-	usage_2 = "file inference mode: crf_kr.py -i=test_file model -m=inference\n"
+	usage_2 = "file inference mode: crf_kr.py -i=test_file model -m=inference -b=4\n"
 	usage_3 = "train mode : crf_kr.py -i=train_file model -m=train -b=4 -e=4\n"
-	usage_4 = "test mode : crf_kr.py -i=input_file -a=anwser_file -m=test -b=4"
+	usage_4 = "test mode : crf_kr.py -i=input_file -a=anwser_file -m=test"
 	parser = argparse.ArgumentParser(usage_0 + usage_1 + usage_2 + usage_3 + usage_4)
 	parser.add_argument("--input", '-i')
 	parser.add_argument("model")
@@ -66,7 +66,7 @@ if __name__ == '__main__':
 		elif args.mode == "inference":
 			crf.inference_file(args.input, args.model, batch=args.batch)
 		elif args.mode == "test":
-			test(args.input_file, args.anwser_file)
+			test(args.input, args.anwserfile)
 		else:
 			print("wrong args input")
 	else:

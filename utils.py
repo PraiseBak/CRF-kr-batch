@@ -141,10 +141,10 @@ def test(prediction_filename,anwser_filename):
 			if line != '\n' and len(line.split('\t')) > 1:
 				re_pred_list.append(line)
 	from nltk.metrics import accuracy
-
 	for i in range(len(re_pred_list)):
 		if re_pred_list[i] != re_anwser[i]:
-			print("P:",re_pred_list[i]+"A:",re_anwser[i])
+			pass
+#			print("P:",re_pred_list[i]+"A:",re_anwser[i])
 
 	print('result:',accuracy(re_anwser,re_pred_list))
 
@@ -178,7 +178,6 @@ def emjeol_to_sentense(filename):
 		sentense_list = list()
 		sentense = ""
 		for line in data:
-
 			splited_line = line.split('\t')
 			x = splited_line[0]
 			if len(splited_line) == 0 or len(splited_line) == 1:
