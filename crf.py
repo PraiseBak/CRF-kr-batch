@@ -187,9 +187,7 @@ def _log_likelihood(params, *args):
 	expected_counts = np.zeros(len(feature_set))
 	total_logZ = 0
 
-
 	if SUB_ITERATION_NUM == 0 and is_batch:
-		global feature_data
 		data, is_end = crf.CRF_bat.return_corpus()
 		if is_end:
 			crf.CRF_bat.set_file_curser_front()
@@ -200,8 +198,10 @@ def _log_likelihood(params, *args):
 	elif is_batch:
 		training_feature_data = train_data
 
+	empirical_counts = crf.empirical_counts
 	i = 0
 	import time
+	
 	for	X_features in training_feature_data:
 		#X_features = 한문장
 		potential_table = _generate_potential_table(params, len(label_dic), feature_set,
