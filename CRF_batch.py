@@ -4,7 +4,6 @@ import json
 class CRFBatch():
 	dat_len = 0
 	#cur_line = 0
-	batch_size = 0
 	iteration = 0
 	feature_io = ""	
 	f = ""
@@ -39,6 +38,7 @@ class CRFBatch():
 			if not line:
 				is_end_batch = True
 				break
+
 			line = line.strip().split('\t')
 			if len(line) is 0 or len(line) is 1:
 				if len(X) == 0:

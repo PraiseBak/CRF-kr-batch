@@ -42,13 +42,14 @@ TOTAL_SUB_ITERATIONS = 0
 GRADIENT = None
 is_batch = False
 train_data = None
+epoch = 0
 
-
-def _callback(params):
+def _callback(params,is_batch=False):
 	global ITERATION_NUM
 	global SUB_ITERATION_NUM
 	global TOTAL_SUB_ITERATIONS
-	ITERATION_NUM += 1
+	if not is_batch:
+		ITERATION_NUM += 1
 	TOTAL_SUB_ITERATIONS += SUB_ITERATION_NUM
 	SUB_ITERATION_NUM = 0
 
@@ -183,6 +184,7 @@ def _log_likelihood(params, *args):
 	global is_batch
 	global SUB_ITERATION_NUM
 	global train_data
+	global epoch
 	training_data, feature_set, training_feature_data, empirical_counts, label_dic, squared_sigma, crf = args
 	expected_counts = np.zeros(len(feature_set))
 	total_logZ = 0
@@ -190,7 +192,6 @@ def _log_likelihood(params, *args):
 	if SUB_ITERATION_NUM == 0 and is_batch:
 		data, is_end = crf.CRF_bat.return_corpus()
 		if is_end:
-			print('첫번째 배치로 돌아옴')
 			crf.CRF_bat.set_file_curser_front()
 		crf.feature_set.scan(data,batch=True)
 		training_feature_data = crf._get_training_feature_data(data)
@@ -265,16 +266,21 @@ def _log_likelihood(params, *args):
 	
 	#if print('  ', '{0:03d}'.format(ITERATION_NUM), sub_iteration_str, ':', likelihood * -1)
 	if is_batch:
-		print_str = "번째 배치"
+		print_str = "배치,"
+		if (int(ITERATION_NUM) % int(crf.CRF_bat.iteration)) == 0 and SUB_ITERATION_NUM == 0:
+			print('\n',int(epoch)+1,"번째 epoch")
+			epoch = str(int(epoch)+1)
+		batch_count = int(ITERATION_NUM+1) % int(crf.CRF_bat.iteration)
+		if batch_count == 0: batch_count = crf.CRF_bat.iteration
+		print('({0:03d})'.format(batch_count), '번째 %s' % (print_str), sub_iteration_str, '번째 sub iteration', ':',
+	      likelihood * -1)
 	else:
-		print_str = "번째 iteration"
-	print('\n({0:03d})'.format(ITERATION_NUM+1),'번째 %s' %(print_str),sub_iteration_str,'번째 sub iteration', ':', likelihood * -1)
+		print_str = "epoch"
+		print('\n({0:03d})'.format(ITERATION_NUM+1),'번째 %s' %(print_str),sub_iteration_str,'번째 sub iteration', ':', likelihood * -1)
 
-	
 	result = 0
 	for i in range(len(gradients)):
 		result += gradients[i]
-	
 	print( '    gradients:', result/len(gradients))
 		
 	SUB_ITERATION_NUM += 1
@@ -317,7 +323,7 @@ class LinearChainCRF():
 				for X, _ in data]
 	
 
-	def _estimate_parameters(self,max_iter=None):
+	def _estimate_parameters(self,max_iter=None,batch_size=None):
 		"""
 		Estimates parameters using L-BFGS.
 		* References:
@@ -360,7 +366,7 @@ class LinearChainCRF():
 									self.feature_set.get_empirical_counts(),
 									self.label_dic, self.squared_sigma,self),
 								maxiter=max_iter,
-								callback=_callback)
+								callback=_callback,batch_size=batch_size)
 
 
 		
@@ -370,7 +376,7 @@ class LinearChainCRF():
 		print('* Training has been finished with %d iterations' % information['nit'])
 		print("iteration ended time =",time.time() - iteration_start)
 		"""
-		
+
 		if information['warnflag'] != 0:
 			print('\n* Warning (code: %d)' % information['warnflag'])
 			if 'task' in information.keys():
@@ -433,7 +439,7 @@ class LinearChainCRF():
 		print("* Number of labels: %d" % (self.num_labels-1))
 		print("* Number of features: %d" % len(self.feature_set))
 		self.params = np.zeros(len(self.feature_set))
-		self._estimate_parameters(max_iter=epoch * batch)
+		self._estimate_parameters(max_iter=epoch,batch_size=batch)
 		self.save_model(model_filename)
 
 
@@ -482,10 +488,10 @@ class LinearChainCRF():
 									YY_list.append(X[j] + '\t' + Yprime[j])
 								YY_list.append('\n')
 								X = list()
-
 						line = f.readline()
 				file_name = utils.write_inference_result(YY_list ,model+'emjeol',iteration)
-			
+
+
 			print("pred file:",file_name)
 
 
@@ -641,9 +647,9 @@ class LinearChainCRF():
 if __name__ == '__main__':
 	crf = LinearChainCRF()
 	model = "indelete.model"
-	test_corpus_filename = "1000.dat"
+	test_corpus_filename = "10.dat"
 
 	import os
 	path = os.path.join(os.path.abspath(os.path.dirname(__file__)),test_corpus_filename)
 	#crf.train(path,model2,epoch=2)
-	crf.train(path, model, batch=3,epoch=15)
+	crf.train(path, model, batch=3,epoch=9)
