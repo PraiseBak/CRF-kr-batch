@@ -25,6 +25,7 @@ def return_emjeol_list_from_file(filename):
 	content = return_file_content(filename)
 	word = return_word(content)
 	emjeol_list = return_emjeol(word)
+	
 	return emjeol_list
 		
 def make_emjeol_file(sentense_filename):
@@ -61,7 +62,7 @@ def return_word(content):
 	word_list = list()
 	for line in content:
 		word_list.append(word_tokenize(line,'korean'))
-
+	
 	return word_list
 
 
@@ -69,6 +70,7 @@ def return_emjeol(word_list):
 	emjeol_list = list()
 	word_sentense_unit_list = list()
 	word_sentense = ""
+	emjeol_unit_list = list()
 	for word in word_list:
 		word_sentense =""
 		for i in word:
@@ -125,12 +127,12 @@ def write_inference_result(Y_list,filename,iteration = None):
 
 
 def test(prediction_filename,anwser_filename):
-
+	
+	
 	with open(anwser_filename,'r') as f:
 		anwser_list = f.readlines()
 		re_anwser = list() 
 		for line in anwser_list:
-
 			if line != '\n' and len(line.split('\t')) > 1:
 				re_anwser.append(line)
 
@@ -141,11 +143,7 @@ def test(prediction_filename,anwser_filename):
 			if line != '\n' and len(line.split('\t')) > 1:
 				re_pred_list.append(line)
 	from nltk.metrics import accuracy
-	for i in range(len(re_pred_list)):
-		if re_pred_list[i] != re_anwser[i]:
-			pass
-#			print("P:",re_pred_list[i]+"A:",re_anwser[i])
-
+#	print("P:",re_pred_list[i]+"A:",re_anwser[i])
 	print('result:',accuracy(re_anwser,re_pred_list))
 
 
@@ -190,42 +188,6 @@ def emjeol_to_sentense(filename):
 	with open(filename.split('.')[0]+"_sentense.dat",'w') as f:
 		for i in sentense_list:
 			f.write(i+'\n')
-
-
-
-def write_anyway(thing):
-	"""
-	training_feature_data
-	"""
-
-	'''
-	모든 X에 대한.
-	즉[[(prev_y,y),id)] in X] in whole_data
-	'''
-	f = open('test.txt','w')
-
-	for i in thing:
-		'''
-		[(prev_y,y),id)] - X 단위.
-		X는 한 문장의 모든 음절의 리스트
-		X
-		['양'], ['반'], ['네'], ['들'], ['앞'], ['에'], ['서'],
-		['그'], ['네'], ['들'], ['조'], ['롱']....
-		'''
-		for j in i:
-			"""
-			(prev_y,y),id
-			"""
-			for k,n in j:
-				str_tmp = "("
-				for m in list(k):
-					str_tmp += str(m) +','
-				str_tmp = str_tmp.rstrip(',')+(')')
-				print(str_tmp.rstrip(',')+')')
-				f.write(str_tmp + ':' + str(n)+', ')
-
-			
-			f.write('\n')
 
 
 

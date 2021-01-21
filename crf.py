@@ -86,7 +86,7 @@ def _generate_potential_table(params, num_labels, feature_set, X, inference=True
 					table[prev_y, y] += score
 		#한 음절마다
 		table = np.exp(table)
-			
+
 		if t == 0:
 			table[STARTING_LABEL_INDEX+1:] = 0
 		else:
@@ -109,7 +109,7 @@ def _forward_backward(num_labels, time_length, potential_table):
 	alpha = np.zeros((time_length, num_labels))
 	scaling_dic = dict()
 	t = 0
-	
+
 	for label_id in range(num_labels):
 		alpha[t, label_id] = potential_table[t][STARTING_LABEL_INDEX, label_id]
 	#alpha[0, :] = potential_table[0][STARTING_LABEL_INDEX, :]  # slow
@@ -150,7 +150,7 @@ def _forward_backward(num_labels, time_length, potential_table):
 		beta[t, label_id] = 1.0
 	#beta[time_length - 1, :] = 1.0	 # slow
 	for t in range(time_length-2, -1,-1):
-		
+
 		for label_id in range(1, num_labels):
 			#현재 음절이면서 현재 레이블일 확률 = 다음 음절 나올 확률,
 			beta[t,label_id] = np.dot(beta[t+1,:],potential_table[t+1][label_id,:])
@@ -189,33 +189,37 @@ def _log_likelihood(params, *args):
 	expected_counts = np.zeros(len(feature_set))
 	total_logZ = 0
 
+
 	if SUB_ITERATION_NUM == 0 and is_batch:
+		train_data = None
 		data, is_end = crf.CRF_bat.return_corpus()
 		if is_end:
 			crf.CRF_bat.set_file_curser_front()
 		crf.feature_set.scan(data,batch=True)
 		training_feature_data = crf._get_training_feature_data(data)
+		data = None
 		train_data = training_feature_data
+
 	elif is_batch:
 		training_feature_data = train_data
 
 	empirical_counts = crf.feature_set.get_empirical_counts()
 	i = 0
 	import time
-	
+
 	for	X_features in training_feature_data:
 		#X_features = 한문장
 		potential_table = _generate_potential_table(params, len(label_dic), feature_set,
-													X_features, inference=False)
-	
+				X_features, inference=False)
+
 		alpha, beta, Z, scaling_dic = _forward_backward(len(label_dic), len(X_features), potential_table)
-		
+
 		#Z =(제일 마지막 X일때 모든 레이블 확률의 합)
 		#scaling_coef..= 오버플로우발생했을때 값들
 		#맨 마지막 행 그리고 오버플로우가 뭔가 의미가..
-	
+
 		total_logZ += log(Z) + \
-					  sum(log(scaling_coefficient) for _, scaling_coefficient in scaling_dic.items())
+				sum(log(scaling_coefficient) for _, scaling_coefficient in scaling_dic.items())
 
 		#t는 몇번째 음절인지.
 		for t in range(len(X_features)):
@@ -232,7 +236,7 @@ def _log_likelihood(params, *args):
 						prob = (alpha[t, y] * beta[t, y] * scaling_dic[t])/Z
 					else:
 						prob = (alpha[t, y] * beta[t, y])/Z
-							
+
 				elif t == 0:
 					if prev_y is not STARTING_LABEL_INDEX:
 						continue
@@ -252,18 +256,18 @@ def _log_likelihood(params, *args):
 
 
 	likelihood = np.dot(empirical_counts, params) - total_logZ - \
-				 np.sum(np.dot(params,params))/(squared_sigma*2)
+			np.sum(np.dot(params,params))/(squared_sigma*2)
 	gradients = empirical_counts - expected_counts - params/squared_sigma
-	
+
 	global GRADIENT
 	GRADIENT = gradients
 
-	
+
 
 	sub_iteration_str = '	'
 	if SUB_ITERATION_NUM >= 0:
 		sub_iteration_str = '(' + '{0:02d}'.format(SUB_ITERATION_NUM) + ')'
-	
+
 	#if print('  ', '{0:03d}'.format(ITERATION_NUM), sub_iteration_str, ':', likelihood * -1)
 	if is_batch:
 		print_str = "배치,"
@@ -273,7 +277,7 @@ def _log_likelihood(params, *args):
 		batch_count = int(ITERATION_NUM+1) % int(crf.CRF_bat.iteration)
 		if batch_count == 0: batch_count = crf.CRF_bat.iteration
 		print('({0:03d})'.format(batch_count), '번째 %s' % (print_str), sub_iteration_str, '번째 sub iteration', ':',
-	      likelihood * -1)
+				likelihood * -1)
 	else:
 		print_str = "epoch"
 		print('\n({0:03d})'.format(ITERATION_NUM+1),'번째 %s' %(print_str),sub_iteration_str,'번째 sub iteration', ':', likelihood * -1)
@@ -282,7 +286,7 @@ def _log_likelihood(params, *args):
 	for i in range(len(gradients)):
 		result += gradients[i]
 	print( '    gradients:', result/len(gradients))
-		
+
 	SUB_ITERATION_NUM += 1
 	return likelihood * -1
 
@@ -315,13 +319,13 @@ class LinearChainCRF():
 	def _read_corpus(self, filename):
 		return read_conll_corpus(filename)
 
-	
+
 	def _get_training_feature_data(self,data=None):
 		if data == None:
 			data = self.training_data
 		return [[self.feature_set.get_feature_list(X, t) for t in range(len(X))]
 				for X, _ in data]
-	
+
 
 	def _estimate_parameters(self,max_iter=None,batch_size=None):
 		"""
@@ -338,7 +342,7 @@ class LinearChainCRF():
 		global is_batch
 
 		training_feature_data = None
-		
+
 		if max_iter == None:max_iter = 5
 
 		if is_batch:
@@ -361,15 +365,15 @@ class LinearChainCRF():
 		iteration_start = time.time()
 		self.params, log_likelihood, information = \
 				fmin_l_bfgs_b(func=_log_likelihood, fprime=_gradient,
-							  x0=self.params,
-								args=(self.training_data, self.feature_set, training_feature_data,
-									self.feature_set.get_empirical_counts(),
-									self.label_dic, self.squared_sigma,self),
-								maxiter=max_iter,
-								callback=_callback,batch_size=batch_size)
+						x0=self.params,
+						args=(self.training_data, self.feature_set, training_feature_data,
+							self.feature_set.get_empirical_counts(),
+							self.label_dic, self.squared_sigma,self),
+						maxiter=max_iter,
+						callback=_callback,batch_size=batch_size)
 
 
-		
+
 		"""
 		print('   ========================')
 		print('   (iter: iteration, sit: sub iteration)')
@@ -383,17 +387,17 @@ class LinearChainCRF():
 				print('* Reason: %s' % (information['task']))
 		print('* Likelihood: %s' % str(log_likelihood))
 
-		
+
 	#without batch
 	def train(self, corpus_filename, model_filename,batch=None,epoch=None):
 		"""
 		Estimates parameters using conjugate gradient methods.(L-BFGS-B used)
 		"""
-		
+
 		start_time = time.time()
 		print('[%s] Start training' % datetime.datetime.now())
 		if batch == None:
-			
+
 			# Read the training corpus
 			print("* Reading training data ...")
 			self.training_data = self._read_corpus(corpus_filename)
@@ -403,7 +407,7 @@ class LinearChainCRF():
 			self.feature_set.scan(self.training_data)
 			self.label_dic, self.label_array = self.feature_set.get_labels()
 			self.num_labels = len(self.label_array)
-			
+
 			print("* Number of labels: %d" % (self.num_labels-1))
 			print("* Number of features: %d" % len(self.feature_set))
 
@@ -414,11 +418,11 @@ class LinearChainCRF():
 
 		else:
 			self.train_batch(corpus_filename,model_filename,batch=batch,epoch=epoch)
-		
+
 		elapsed_time = time.time() - start_time
 		print('* 총 소요 시간 Elapsed time: %f' % elapsed_time)
 		print('* [%s] Training done' % datetime.datetime.now())
-	
+
 	def train_batch(self, corpus_filename,model_filename,batch=None,epoch=None):
 		global is_batch
 		is_batch = True
@@ -439,7 +443,7 @@ class LinearChainCRF():
 		print("* Number of labels: %d" % (self.num_labels-1))
 		print("* Number of features: %d" % len(self.feature_set))
 		self.params = np.zeros(len(self.feature_set))
-		self._estimate_parameters(max_iter=epoch,batch_size=batch)
+		self._estimate_parameters(max_iter=epoch,batch_size=batch * epoch)
 		self.save_model(model_filename)
 
 
@@ -474,9 +478,8 @@ class LinearChainCRF():
 				YY_list = list()
 				#배치사이즈마다 결과 출력 및 메모리초기화(YY_list=list())
 				X = list()
-				for count in range(0,int(file_len/iteration)):
+				for count in range(0,int(file_len/batch)):
 					line = f.readline()
-
 					while(line):
 						if line != "\n":
 							X.append(line.rstrip('\n'))
@@ -489,9 +492,7 @@ class LinearChainCRF():
 								YY_list.append('\n')
 								X = list()
 						line = f.readline()
-				file_name = utils.write_inference_result(YY_list ,model+'emjeol',iteration)
-
-
+				file_name = utils.write_inference_result(YY_list ,model+'emjeol',batch)
 			print("pred file:",file_name)
 
 
@@ -504,30 +505,34 @@ class LinearChainCRF():
 		emjeol_list = list()
 		#Y_list = list()
 		YY_list = list()
-		
+
 		if batch == None:	
 			emjeol_list = utils.return_emjeol_list_from_file(test_corpus_filename)
 		else:
 			batch = int(batch)
 			CRF_bat = CRF_batch.CRFBatch(test_corpus_filename,batch) 
 			emjeol_file,file_len = utils.make_emjeol_file(test_corpus_filename)
-			
 		if batch == None:
-			for i in range(len(emjeol_list)):
-				for X in emjeol_list[i]:
-					Yprime = self.inference(X)
-					for j in range(len(Yprime)):
-						#is_first = 0
-						#if j == 0:
-							#is_first = 1
-						#Y_list.append(str(is_first) + '\t' + X[j] + '\t' +Yprime[j])
-						YY_list.append(X[j] + '\t' + Yprime[j])
+			for X in emjeol_list:
+				if len(X) == 0:
+					continue
+				Yprime = self.inference(X)
+				for j in range(len(Yprime)):
+					#is_first = 0
+					#if j == 0:
+						#is_first = 1
+					#Y_list.append(str(is_first) + '\t' + X[j] + '\t' +Yprime[j])
+					if Yprime[j] == 'NS':
+						Yprime[j] = 'NN'
+					elif Yprime[j] == 'MS':
+						Yprime[j] = 'MA'
+					YY_list.append(X[j] + '\t' + Yprime[j])
 			utils.write_inference_result(YY_list ,model+'emjeol')
 
 		else:
 			#리스트로 가지고 있지 않고 하나하나출력하는 방법
 			self.inference_batch(test_corpus_filename,model,batch=batch )
-			
+
 		#마킹기반 어절 + 예측한 형태소
 		#word_Y = utils.return_converted_word_from_emjeol(Y_list)
 		#model파일이름.result에 저장
@@ -570,15 +575,15 @@ class LinearChainCRF():
 	def save_model(self, model_filename):
 		fea_dic = self.feature_set.serialize_feature_dic()
 		model = {"feature_dic": fea_dic,
-				 "num_features": self.feature_set.num_features,
-				 "labels": self.feature_set.label_array,
-				 "params": list(self.params)}
+				"num_features": self.feature_set.num_features,
+				"labels": self.feature_set.label_array,
+				"params": list(self.params)}
 		f = open(model_filename, 'w')
 		json.dump(model, f, ensure_ascii=False, indent=2, separators=(',', ':'))
 		f.close()	
 		import os
 		print('* Trained CRF Model has been saved at "%s/%s"' % (os.getcwd(), model_filename))
-		
+
 
 	def inference(self, X):
 		"""
@@ -586,7 +591,7 @@ class LinearChainCRF():
 		"""
 		generate_table_start = time.time()
 		potential_table = _generate_potential_table(self.params, self.num_labels,
-													self.feature_set, X, inference=True)
+				self.feature_set, X, inference=True)
 		#print("추론 테이블 생성에 걸린 시간",time.time() -  generate_table_start)
 		#print(potential_table)
 		viterbi_start = time.time()
@@ -612,7 +617,7 @@ class LinearChainCRF():
 		self.params = np.asarray(model['params'])
 		print('CRF model loaded')
 
-	
+
 
 """
 백업

@@ -48,7 +48,7 @@ if __name__ == '__main__':
 	usage_4 = "test mode : crf_kr.py -i=input_file -a=anwser_file -m=test"
 	parser = argparse.ArgumentParser(usage_0 + usage_1 + usage_2 + usage_3 + usage_4)
 	parser.add_argument("--input", '-i')
-	parser.add_argument("model")
+	parser.add_argument("--model")
 	parser.add_argument("--anwserfile", '-a')
 	parser.add_argument("--mode", '-m')
 	parser.add_argument("--batch", '-b')
