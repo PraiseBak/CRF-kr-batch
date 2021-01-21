@@ -48,8 +48,7 @@ def _callback(params,is_batch=False):
 	global ITERATION_NUM
 	global SUB_ITERATION_NUM
 	global TOTAL_SUB_ITERATIONS
-	if not is_batch:
-		ITERATION_NUM += 1
+	ITERATION_NUM += 1
 	TOTAL_SUB_ITERATIONS += SUB_ITERATION_NUM
 	SUB_ITERATION_NUM = 0
 
@@ -369,7 +368,7 @@ class LinearChainCRF():
 						args=(self.training_data, self.feature_set, training_feature_data,
 							self.feature_set.get_empirical_counts(),
 							self.label_dic, self.squared_sigma,self),
-						maxiter=max_iter,
+						maxiter=max_iter*batch_size,
 						callback=_callback,batch_size=batch_size)
 
 
@@ -443,7 +442,7 @@ class LinearChainCRF():
 		print("* Number of labels: %d" % (self.num_labels-1))
 		print("* Number of features: %d" % len(self.feature_set))
 		self.params = np.zeros(len(self.feature_set))
-		self._estimate_parameters(max_iter=epoch,batch_size=batch * epoch)
+		self._estimate_parameters(max_iter=epoch,batch_size=batch)
 		self.save_model(model_filename)
 
 
