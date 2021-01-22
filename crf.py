@@ -189,31 +189,23 @@ def _log_likelihood(params, *args):
 	expected_counts = np.zeros(len(feature_set))
 	total_logZ = 0
 	
-	print("log likelihood 시작 SUB ITER = ",SUB_ITERATION_NUM)
 	
 	if SUB_ITERATION_NUM == 0 and is_batch:
 		train_data = None
-		print("return corpus 시작")
 		data, is_end = crf.CRF_bat.return_corpus()
 		if is_end:
-			print("끝이면서 셋 파일 커서 앞으로")
 			crf.CRF_bat.set_file_curser_front()
-		print("그러면서 피쳐 스캔")
 		crf.feature_set.scan(data,batch=True)
-		print("그러면서 피쳐데이터 가져오기")
 		training_feature_data = crf._get_training_feature_data(data)
-		print("그러면서 여기서 초기화")
 		data = None
 		
 		train_data = training_feature_data
 
 	elif is_batch:
 		training_feature_data = train_data
-	print("엄준식")
 	empirical_counts = crf.feature_set.get_empirical_counts()
 	i = 0
 	import time
-	print("X_features")
 	for	X_features in training_feature_data:
 		#X_features = 한문장
 		potential_table = _generate_potential_table(params, len(label_dic), feature_set,
@@ -261,6 +253,7 @@ def _log_likelihood(params, *args):
 						print(prob)
 
 	
+
 
 	likelihood = np.dot(empirical_counts, params) - total_logZ - \
 			np.sum(np.dot(params,params))/(squared_sigma*2)
@@ -347,7 +340,6 @@ class LinearChainCRF():
 		global is_batch
 		training_feature_data = None
 		if max_iter == None:max_iter = 5
-		print("estimate")
 		if is_batch:
 			self.training_data = None
 		else:
@@ -456,8 +448,6 @@ class LinearChainCRF():
 
 
 
-	#가다듬기
-	#CRF.inference_sentense("문장입니다.",model_filename,False)
 	def inference_sentense(self,model):
 		self.load(model)
 		if self.params is None:
@@ -599,11 +589,8 @@ class LinearChainCRF():
 		generate_table_start = time.time()
 		potential_table = _generate_potential_table(self.params, self.num_labels,
 				self.feature_set, X, inference=True)
-		#print("추론 테이블 생성에 걸린 시간",time.time() -  generate_table_start)
-		#print(potential_table)
 		viterbi_start = time.time()
 		Yprime = self.viterbi(X, potential_table)
-		#print("viterbi 걸린 시간=",time.time() - viterbi_start)
 		return Yprime
 
 
@@ -626,42 +613,3 @@ class LinearChainCRF():
 
 
 
-"""
-백업
-	def inference_file(self, test_corpus_filename,model):
-		self.load(model)
-		if self.params is None:
-			raise BaseException("You should load a model first!")
-		start_time = time.time()
-		emjeol_list = list()
-		emjeol_list = utils.return_emjeol_list_from_file(test_corpus_filename)
-		#마킹 + 음절+ 예측한 형태소
-		Y_list = list()
-		YY_list = list()
-		for i in range(len(emjeol_list)):
-			for X in emjeol_list[i]:
-				Yprime = self.inference(X)
-				for j in range(len(Yprime)):
-					is_first = 0
-					if j == 0:
-						is_first = 1
-					Y_list.append(str(is_first) + '\t' + X[j] + '\t' +Yprime[j])
-					YY_list.append(X[j] + '\t' + Yprime[j])
-		#마킹기반 어절 + 예측한 형태소
-		#word_Y = utils.return_converted_word_from_emjeol(Y_list)
-		#model파일이름.result에 저장
-		#utils.write_inference_result(word_Y,model)
-		utils.write_inference_result(YY_list ,model+'emjeol')
-"""
-
-
-
-if __name__ == '__main__':
-	crf = LinearChainCRF()
-	model = "indelete.model"
-	test_corpus_filename = "10.dat"
-
-	import os
-	path = os.path.join(os.path.abspath(os.path.dirname(__file__)),test_corpus_filename)
-	#crf.train(path,model2,epoch=2)
-	crf.train(path, model, batch=3,epoch=9)
