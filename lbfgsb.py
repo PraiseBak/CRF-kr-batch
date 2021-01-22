@@ -53,6 +53,7 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
 
     if batch_size != None:
         batch_size = int(batch_size)
+        maxiter = batch_size * maxiter
     """
     Minimize a function func using the L-BFGS-B algorithm.
 
@@ -196,7 +197,7 @@ def fmin_l_bfgs_b(func, x0, fprime=None, args=(),
             'callback': callback,
             'maxls': maxls}
 
-    res = _minimize_lbfgsb(fun, x0, args=args, jac=jac, bounds=bounds,batch_size=batch_size,
+    res = _minimize_lbfgsb(fun, x0, args=args, jac=jac, bounds=bounds, batch_size=batch_size,
                            **opts)
     d = {'grad': res['jac'],
          'task': res['message'],
@@ -272,6 +273,7 @@ def _minimize_lbfgsb(fun, x0, args=(), jac=None, bounds=None,
     arrive at `ftol`.
 
     """
+
     _check_unknown_options(unknown_options)
     m = maxcor
     pgtol = gtol
@@ -350,6 +352,7 @@ def _minimize_lbfgsb(fun, x0, args=(), jac=None, bounds=None,
 
     while 1:
         # x, f, g, wa, iwa, task, csave, lsave, isave, dsave = \
+        print("밉")
         _lbfgsb.setulb(m, x, low_bnd, upper_bnd, nbd, f, g, factr,
                        pgtol, wa, iwa, task, iprint, csave, lsave,
                        isave, dsave, maxls)
@@ -360,12 +363,17 @@ def _minimize_lbfgsb(fun, x0, args=(), jac=None, bounds=None,
             # until the completion of the current minimization iteration.
             # Overwrite f and g:
             f, g = func_and_grad(x)
+
+#TODO 삭제
+            print('1번케이스')
+
+
         elif task_str.startswith(b'NEW_X'):
             # new iteration
             n_iterations += 1
+            print('2번케이스')
             if callback is not None:
                 callback(np.copy(x))
-
             if n_iterations >= maxiter:
                 task[:] = 'STOP: TOTAL NO. of ITERATIONS REACHED LIMIT'
             elif sf.nfev > maxfun:
@@ -373,16 +381,21 @@ def _minimize_lbfgsb(fun, x0, args=(), jac=None, bounds=None,
                            'EXCEEDS LIMIT')
         else:
             #TODO수정한 부분
+            print('3번케이스')
             if batch_size != None and task_str.startswith(b'CONV'):
-                print("* 가중치 값이 수렴하지만 배치를 완료하지 않아 이어서 하도록 함")
-                if n_iterations+1 % batch_size != 0:
+                print("N:",n_iterations,type(n_iterations))
+                if int(n_iterations) % int(batch_size) != 0:
                     if callback is not None:
-                        callback(np.copy(x),is_batch=True)
+                        callback(np.copy(x))
                     if n_iterations >= maxiter:
                         task[:] = 'STOP: TOTAL NO. of ITERATIONS REACHED LIMIT'
+                        break
                     elif sf.nfev > maxfun:
                         task[:] = ('STOP: TOTAL NO. of f AND g EVALUATIONS '
                                    'EXCEEDS LIMIT')
+                        break
+                    print("* 가중치 값이 수렴하지만 배치를 완료하지 않아 이어서 하도록 함")
+                    n_iterations += 1
                 else:
                      break
             else:
