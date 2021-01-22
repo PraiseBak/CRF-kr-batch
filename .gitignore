@@ -27,3 +27,4 @@ umum
 ./data
 /data
 __pycache__
+./model

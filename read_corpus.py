@@ -8,7 +8,7 @@ def read_conll_corpus(filename):
 	Read a corpus file with a format used in CoNLL.
 	"""
 	data = list()
-	data_string_list = list(open(filename,'r',encoding='cp949'))
+	data_string_list = list(open(filename,'r'))
 	element_size = 0
 	X = list()
 	Y = list()

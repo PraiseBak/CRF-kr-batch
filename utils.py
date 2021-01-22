@@ -129,7 +129,9 @@ def write_inference_result(Y_list,filename,iteration = None):
 def test(prediction_filename,anwser_filename):
 	
 	
-	with open(anwser_filename,'r') as f:
+	
+	with open(anwser_filename,'r',encoding='cp949') as f:
+	#with open(anwser_filename,'r') as f:
 		anwser_list = f.readlines()
 		re_anwser = list() 
 		for line in anwser_list:
@@ -172,6 +174,8 @@ def return_rowNcol(element):
 # 음절부분만 가져와 문장으로 만듦
 def emjeol_to_sentense(filename):
 	with open(filename,'r') as f:
+	
+	#with open(filename,'r',encoding='cp949') as f:
 		data =f.readlines()
 		sentense_list = list()
 		sentense = ""

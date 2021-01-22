@@ -21,8 +21,8 @@ def feature_setting(_, X, t):
 	length = len(X)
 
 	import os
-	path = os.path.join(os.path.abspath(os.path.dirname(__file__)),'template')
-	f = open(path,'r',-1,'utf-8')
+	path = os.path.join(os.path.abspath(os.path.dirname(__file__)),'default_template')
+	f = open(path,'r')
 	f.readline()
 
 	line = f.readlines()
